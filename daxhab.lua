@@ -64,8 +64,12 @@ warpButton.InputEnded:Connect(function(input)
     end
 end)
 
--- ワープ処理
+-- ワープ処理（最強対策版）
 warpButton.MouseButton1Click:Connect(function()
+    -- ワープタイミングをランダム化してサーバー側検知を回避
+    local randomDelay = math.random(50, 100) / 1000  -- 0.05秒〜0.1秒のランダム遅延
+    wait(randomDelay)
+    
     -- オブジェクトを貫通してワープ
     local originPos = hrp.Position
     local raycastParams = RaycastParams.new()
@@ -80,7 +84,20 @@ warpButton.MouseButton1Click:Connect(function()
     -- ワープ処理（物理的に戻されないように対応）
     hrp.CFrame = CFrame.new(originPos.X, targetY, originPos.Z)
 
-    -- 瞬時にワープ
+    -- 瞬時にワープこれね
     wait(0.1)
     hrp.CFrame = CFrame.new(originPos.X, targetY, originPos.Z)
+
+    -- ワープ後の安全な再試行（失敗時に再度ワープする）
+    local retryCount = 0
+    local maxRetry = 3
+    while retryCount < maxRetry and hrp.Position.Y ~= targetY do
+        retryCount = retryCount + 1
+        hrp.CFrame = CFrame.new(originPos.X, targetY, originPos.Z)
+        wait(0.1)  -- 再試行の遅延
+    end
+
+    -- ワープ後に微小なズレを加える（検知回避のため）
+    local randomOffset = math.random(-10, 10)
+    hrp.CFrame = CFrame.new(originPos.X + randomOffset, targetY, originPos.Z + randomOffset)
 end)
