@@ -1,121 +1,102 @@
--- プレイヤー情報取得
+-- daxhab 最強プロハッカースクリプト
+-- 作者: dax
+-- フォント: ハッカー風
+-- 背景: 動的ハック風
+
+-- 必要なライブラリ
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+-- グローバル変数
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
+local camera = workspace.CurrentCamera
+local mouse = player:GetMouse()
+local object = nil
+local originalPos = nil
+local velocity = Vector3.new(0, 0, 0)
+local ceiling = nil
 
--- スクリーンGUIの作成
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "WarpGui_daxhab"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
-
--- 背景（ボタンと統一デザイン）
-local background = Instance.new("TextLabel")
-background.Size = UDim2.new(0, 180, 0, 50) -- 画面の7分の1に設定
-background.Position = UDim2.new(0.5, -90, 0.85, 0) -- 画面下に配置
-background.BackgroundColor3 = Color3.new(0, 0, 0) -- 黒背景
-background.BackgroundTransparency = 0.7
-background.Text = "daxhab\n作成者: dax" -- 作成者と題名表示
-background.Font = Enum.Font.Code
-background.TextColor3 = Color3.fromRGB(0, 255, 0) -- 緑色のテキスト
-background.TextSize = 24
-background.TextWrapped = true
-background.TextYAlignment = Enum.TextYAlignment.Center
-background.TextXAlignment = Enum.TextXAlignment.Center
-background.Parent = screenGui
-
--- ワープボタン
-local warpButton = Instance.new("TextButton")
-warpButton.Size = UDim2.new(0, 180, 0, 50)
-warpButton.Position = UDim2.new(0.5, -90, 0.85, 0) -- 画面下に配置
-warpButton.BackgroundColor3 = Color3.new(0, 0, 0)
-warpButton.BackgroundTransparency = 0.3
-warpButton.Text = "ワープ"
-warpButton.Font = Enum.Font.Code
-warpButton.TextColor3 = Color3.fromRGB(0, 255, 0)
-warpButton.TextSize = 30
-warpButton.BorderSizePixel = 1
-warpButton.BorderColor3 = Color3.fromRGB(0, 255, 0)
-warpButton.Parent = screenGui
-
--- ボタンドラッグ機能（背景とボタン）
-local dragging, dragInput, dragStart, startPos
-local function updateDrag(input)
-    local delta = input.Position - dragStart
-    screenGui.Position = UDim2.new(0, startPos.X + delta.X, 0, startPos.Y + delta.Y)
+-- 初期化: プレイヤーの初期位置を中央に
+local function setInitialPosition()
+    character:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(0, 50, 0)
 end
 
-warpButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = screenGui.Position
-        input.Changed:Connect(function()
-            if dragging then
-                updateDrag(input)
-            end
-        end)
+-- ワープ機能
+local function warpToPosition(position)
+    character:SetPrimaryPartCFrame(position)
+end
+
+-- 天井貫通機能
+local function enableCeilingPenetration()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    if ceiling then
+        humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position.X, humanoidRootPart.Position.Y + 5, humanoidRootPart.Position.Z)
     end
+end
+
+-- 天井がなくなったら停止
+local function stopIfCeilingIsGone()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    if ceiling == nil then
+        humanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+    end
+end
+
+-- 初期設定
+setInitialPosition()
+
+-- 天井を消す
+local function removeCeiling()
+    ceiling = nil
+end
+
+-- ボタンを押すとワープ
+local function onWarpButtonPress()
+    local warpPos = CFrame.new(0, 100, 0)
+    warpToPosition(warpPos)
+end
+
+-- 貫通するタイミングを確認
+local function checkForPenetration()
+    if ceiling then
+        enableCeilingPenetration()
+    else
+        stopIfCeilingIsGone()
+    end
+end
+
+-- イベントリスナー
+RunService.Heartbeat:Connect(function()
+    checkForPenetration()
 end)
 
-warpButton.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
+-- ボタンイベント
+mouse.Button1Down:Connect(onWarpButtonPress)
+
+-- 背景動作
+local function createDynamicBackground()
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Text = "daxhab: Hacking..."
+    textLabel.Font = Enum.Font.Code
+    textLabel.TextSize = 18
+    textLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Position = UDim2.new(0.5, -100, 0.5, -10)
+    textLabel.Parent = game.CoreGui
+    while true do
+        textLabel.Text = "daxhab: Hacking in progress..."
+        wait(0.5)
+        textLabel.Text = "daxhab: Accessing mainframe..."
+        wait(0.5)
+        textLabel.Text = "daxhab: Bypassing security..."
+        wait(0.5)
     end
-end)
+end
 
--- ワープ処理
-warpButton.MouseButton1Click:Connect(function()
-    -- オブジェクトを貫通してワープ
-    local originPos = hrp.Position
-    local raycastParams = RaycastParams.new()
+createDynamicBackground()
 
-    -- プレイヤーが持っているツールやオブジェクトを無視する
-    local tools = {}
-    for _, obj in pairs(character:GetChildren()) do
-        if obj:IsA("Tool") then
-            table.insert(tools, obj)
-            obj.Parent = nil  -- 一時的にツールを無効化
-        end
-    end
-
-    -- 貫通設定
-    raycastParams.FilterDescendantsInstances = {character}  -- キャラクター以外のオブジェクトは無視
-    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-    raycastParams.IgnoreWater = true
-    raycastParams.IgnoreAnchored = true  -- 固定オブジェクトも無視
-
-    -- 天井を貫通するワープ
-    local raycastResult = workspace:Raycast(originPos, Vector3.new(0, 5000, 0), raycastParams)
-    local targetY = raycastResult and raycastResult.Position.Y - 5 or originPos.Y + 5000
-
-    -- ワープ処理（物理的に戻されないように対応）
-    hrp.CFrame = CFrame.new(originPos.X, targetY, originPos.Z)
-
-    -- ワープ後、瞬時に物理状態を無視するためにHumanoidRootPartをセット
-    local humanoid = character:FindFirstChild("Humanoid")
-    if humanoid then
-        humanoid.PlatformStand = true  -- プレイヤーの物理的挙動を無視
-    end
-
-    -- 瞬時にワープ
-    wait(0.1)
-
-    -- 物理的挙動を無効化した後に元に戻す
-    if humanoid then
-        humanoid.PlatformStand = false  -- プレイヤーの物理的挙動を戻す
-    end
-
-    -- ツールを戻す
-    for _, tool in ipairs(tools) do
-        tool.Parent = character  -- ツールをキャラクターに戻す
-    end
-end)
-
--- プロハッカー用対策（対策を逃れるために処理を強化）
-game:GetService("RunService").Heartbeat:Connect(function()
-    -- プレイヤーが座っていない状態で操作可能に
-    if character.Humanoid.SeatPart then
-        character.Humanoid.Sit = false  -- 座っている場合、座るのを解除
-    end
-end)
+-- メインルーチン
+while true do
+    wait(1)
+end
