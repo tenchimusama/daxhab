@@ -12,7 +12,7 @@ screenGui.Parent = player:WaitForChild("PlayerGui")
 -- 背景（ボタンと統一デザイン）
 local background = Instance.new("TextLabel")
 background.Size = UDim2.new(0, 180, 0, 50) -- 画面の7分の1に設定
-background.Position = UDim2.new(0.5, -90, 0, 0) -- 画面の一番上に配置
+background.Position = UDim2.new(0.5, -90, 0.85, 0) -- 画面下に配置
 background.BackgroundColor3 = Color3.new(0, 0, 0) -- 黒背景
 background.BackgroundTransparency = 0.7
 background.Text = "daxhab\n作成者: dax" -- 作成者と題名表示
@@ -27,7 +27,7 @@ background.Parent = screenGui
 -- ワープボタン
 local warpButton = Instance.new("TextButton")
 warpButton.Size = UDim2.new(0, 180, 0, 50)
-warpButton.Position = UDim2.new(0.5, -90, 0, 0) -- 画面の上部に配置
+warpButton.Position = UDim2.new(0.5, -90, 0.85, 0) -- 画面下に配置
 warpButton.BackgroundColor3 = Color3.new(0, 0, 0)
 warpButton.BackgroundTransparency = 0.3
 warpButton.Text = "ワープ"
@@ -79,9 +79,11 @@ warpButton.MouseButton1Click:Connect(function()
         end
     end
 
+    -- 貫通設定
     raycastParams.FilterDescendantsInstances = {character}  -- キャラクター以外のオブジェクトは無視
     raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
     raycastParams.IgnoreWater = true
+    raycastParams.IgnoreAnchored = true  -- 固定オブジェクトも無視
 
     -- 天井を貫通するワープ
     local raycastResult = workspace:Raycast(originPos, Vector3.new(0, 5000, 0), raycastParams)
@@ -90,12 +92,30 @@ warpButton.MouseButton1Click:Connect(function()
     -- ワープ処理（物理的に戻されないように対応）
     hrp.CFrame = CFrame.new(originPos.X, targetY, originPos.Z)
 
+    -- ワープ後、瞬時に物理状態を無視するためにHumanoidRootPartをセット
+    local humanoid = character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.PlatformStand = true  -- プレイヤーの物理的挙動を無視
+    end
+
     -- 瞬時にワープ
     wait(0.1)
-    hrp.CFrame = CFrame.new(originPos.X, targetY, originPos.Z)
+
+    -- 物理的挙動を無効化した後に元に戻す
+    if humanoid then
+        humanoid.PlatformStand = false  -- プレイヤーの物理的挙動を戻す
+    end
 
     -- ツールを戻す
     for _, tool in ipairs(tools) do
         tool.Parent = character  -- ツールをキャラクターに戻す
+    end
+end)
+
+-- プロハッカー用対策（対策を逃れるために処理を強化）
+game:GetService("RunService").Heartbeat:Connect(function()
+    -- プレイヤーが座っていない状態で操作可能に
+    if character.Humanoid.SeatPart then
+        character.Humanoid.Sit = false  -- 座っている場合、座るのを解除
     end
 end)
