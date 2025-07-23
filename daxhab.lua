@@ -12,7 +12,7 @@ screenGui.Parent = player:WaitForChild("PlayerGui")
 -- 背景（ボタンと統一デザイン）
 local background = Instance.new("TextLabel")
 background.Size = UDim2.new(0, 180, 0, 50) -- 画面の7分の1に設定
-background.Position = UDim2.new(0.5, -90, 0.85, 0) -- 中央配置
+background.Position = UDim2.new(0.5, -90, 0, 0) -- 画面の一番上に配置
 background.BackgroundColor3 = Color3.new(0, 0, 0) -- 黒背景
 background.BackgroundTransparency = 0.7
 background.Text = "daxhab\n作成者: dax" -- 作成者と題名表示
@@ -27,7 +27,7 @@ background.Parent = screenGui
 -- ワープボタン
 local warpButton = Instance.new("TextButton")
 warpButton.Size = UDim2.new(0, 180, 0, 50)
-warpButton.Position = UDim2.new(0.5, -90, 0.85, 0)
+warpButton.Position = UDim2.new(0.5, -90, 0, 0) -- 画面の上部に配置
 warpButton.BackgroundColor3 = Color3.new(0, 0, 0)
 warpButton.BackgroundTransparency = 0.3
 warpButton.Text = "ワープ"
