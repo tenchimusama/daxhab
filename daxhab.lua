@@ -7,9 +7,11 @@ screenGui.Parent = player.PlayerGui
 
 -- スクリプト制御変数
 local isEnabled = false
-local warpHeight = 200  -- 高速ワープ距離
-local penetrationSpeed = 50  -- 高速貫通
-local speedMultiplier = 5  -- 高速ワープの加速係数
+local warpHeight = 50  -- 高速ワープ距離
+local penetrationSpeed = 10  -- 高速貫通
+local speedMultiplier = 3  -- 高速ワープの加速係数
+local maxWarpDistance = 150  -- 最大ワープ距離制限
+local resetProtection = true  -- リセット回避有効
 
 -- 物理エンジンの無効化（オブジェクト貫通）
 local function disablePhysics()
@@ -33,6 +35,14 @@ local function disableServerSync()
 
     -- サーバーからの位置修正イベントを無効化
     game:GetService("NetworkClient").OnClientPositionChanged:Connect(function() end)
+
+    -- サーバーからの補正・リセットを完全に無視する
+    game:GetService("NetworkClient").OnClientEvent:Connect(function(eventName)
+        if eventName == "PositionUpdate" or eventName == "Teleport" then
+            -- 無視
+            return nil
+        end
+    end)
 end
 
 -- 完全位置ロック（リセット回避）
@@ -46,8 +56,11 @@ end
 
 -- 高速ワープ＆貫通処理
 local function teleportAndPenetrate()
-    -- 高速ワープ位置設定（200 studs上にワープ）
+    -- 高速ワープ位置設定（ワープ距離制限を超えないように調整）
     local targetPosition = humanoidRootPart.Position + Vector3.new(0, warpHeight, 0)
+    if (targetPosition - humanoidRootPart.Position).magnitude > maxWarpDistance then
+        targetPosition = humanoidRootPart.Position + (targetPosition - humanoidRootPart.Position).unit * maxWarpDistance
+    end
     humanoidRootPart.CFrame = CFrame.new(targetPosition)
 
     -- 物理エンジン無効化
@@ -71,6 +84,16 @@ local function teleportAndPenetrate()
         end
         wait(0.05)  -- 高速貫通速度調整
     end
+end
+
+-- 永続的なリセット回避用強化
+local function preventReset()
+    -- 毎フレーム、位置を固定してサーバーのリセット要求を無視
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if resetProtection then
+            humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position)  -- 自分の位置を強制維持
+        end
+    end)
 end
 
 -- 背景に虹色で「daxhab/作者dax」を流す
@@ -122,6 +145,9 @@ end)
 disablePhysics()
 disableServerSync()
 forcePositionLock()
+
+-- 永続的リセット回避強化
+preventReset()
 
 -- 背景テキストを表示
 createBackgroundText()
