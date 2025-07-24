@@ -25,13 +25,13 @@ titleLabel.TextStrokeTransparency = 0.8
 titleLabel.BackgroundTransparency = 1  -- 背景透明
 titleLabel.Font = Enum.Font.Gotham -- マシュマロ風のフォントに変更
 
--- ワープボタンUI（さらに小さく）
+-- ワープボタンUI（背景と一体化）
 local button = Instance.new("TextButton")
 button.Parent = background
-button.Size = UDim2.new(0, 80, 0, 25)  -- ボタンのサイズを小さく
-button.Position = UDim2.new(0.5, -40, 0.75, -12)  -- ボタンを中央に配置
+button.Size = UDim2.new(1, 0, 0.3, 0)  -- ボタンのサイズを背景に合わせて調整
+button.Position = UDim2.new(0, 0, 0.6, 0)  -- ボタンを背景内で配置
 button.Text = "ワープ"
-button.TextSize = 10  -- ボタンのテキストサイズを小さく
+button.TextSize = 14  -- ボタンのテキストサイズ
 button.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- 黒背景
 button.TextColor3 = Color3.fromRGB(0, 255, 0)  -- 緑色
 button.BorderSizePixel = 0  -- ボタンの枠線を消す
@@ -144,4 +144,3 @@ button.MouseButton1Click:Connect(function()
     enableCeilingPass()   -- 天井貫通一瞬で実行
     teleportPlayer()      -- ワープ一瞬で実行
 end)
-
