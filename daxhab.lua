@@ -4,11 +4,10 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 local humanoid = character:WaitForChild("Humanoid")
 
--- プレイヤーの高さ（7.5人分）
+-- プレイヤー高さ（7.5人分）
 local playerHeight = 7.5 * 5  -- 1人あたり5 studsとして7.5人分
 local moveSpeed = 0.1  -- 移動速度（遅くして自然に見せる）
 local movementDelay = 0.1  -- 移動後のディレイ
-local randomMoveDelay = 0.5  -- ランダム化の間隔
 
 -- キャラクターの物理を無効化（貫通対策）
 local function disableCharacterPhysics()
