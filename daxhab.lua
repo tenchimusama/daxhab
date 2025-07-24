@@ -1,5 +1,5 @@
--- daxhab_maximum_pro_final_v14.lua
--- 完全無敵のワープ＆貫通スクリプト（運営対策完全無視、最強リセット防止、プロハッカー仕様）
+-- daxhab_maximum_v16.lua
+-- 最強ワープ&貫通スクリプト（完全リセット防止、虹色テキスト流れ強化）
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -32,16 +32,6 @@ local function disableServerSync()
     end
 end
 
--- サーバーによる位置補正を完全無効化
-local function disableServerPositionCorrection()
-    game:GetService("RunService").Heartbeat:Connect(function()
-        if isEnabled then
-            -- サーバー側の位置変更を無効化
-            humanoidRootPart.CFrame = humanoidRootPart.CFrame
-        end
-    end)
-end
-
 -- 物理エンジンやサーバーによる位置補正を完全に防ぐ
 local function preventPositionReset()
     game:GetService("RunService").Heartbeat:Connect(function()
@@ -68,9 +58,6 @@ local function teleportAndPenetrate()
 
     -- 位置戻し防止
     preventPositionReset()
-
-    -- サーバーのリセットを防ぐ
-    disableServerPositionCorrection()
 
     -- 貫通を続ける（障害物がなくなるまで）
     while isEnabled do
