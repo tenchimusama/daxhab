@@ -9,7 +9,7 @@ screenGui.Name = "GameUI"
 local background = Instance.new("Frame")
 background.Parent = screenGui
 background.Size = UDim2.new(0, 200, 0, 80)  -- 背景のサイズを小さく
-background.Position = UDim2.new(0.5, -100, 0, 50)  -- 背景を中央に配置
+background.Position = UDim2.new(0.5, -100, 0.5, -40)  -- 背景を中央に配置
 background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- 黒色背景
 background.BorderSizePixel = 0  -- 枠線なし
 
@@ -23,7 +23,7 @@ titleLabel.TextSize = 12  -- テキストサイズを小さく
 titleLabel.TextColor3 = Color3.fromRGB(0, 255, 0)  -- 緑色
 titleLabel.TextStrokeTransparency = 0.8
 titleLabel.BackgroundTransparency = 1  -- 背景透明
-titleLabel.Font = Enum.Font.SourceSansMono  -- ハッカー風の等幅フォント
+titleLabel.Font = Enum.Font.Gotham -- マシュマロ風のフォントに変更
 
 -- ワープボタンUI（さらに小さく）
 local button = Instance.new("TextButton")
@@ -35,7 +35,7 @@ button.TextSize = 10  -- ボタンのテキストサイズを小さく
 button.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- 黒背景
 button.TextColor3 = Color3.fromRGB(0, 255, 0)  -- 緑色
 button.BorderSizePixel = 0  -- ボタンの枠線を消す
-button.Font = Enum.Font.SourceSansMono  -- ハッカー風の等幅フォント
+button.Font = Enum.Font.SourceSans -- POP風フォントに変更
 
 -- 虹色エフェクト（タイトルに追加）
 local function updateTitle()
@@ -112,6 +112,32 @@ end
 
 -- 最強のリセット回避機能（プロハッカー仕様 完全回避）
 advancedResetAvoidance()
+
+-- ドラッグ機能を追加
+local dragging = false
+local dragInput, dragStart, dragPos
+
+background.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        dragInput = input
+    end
+end)
+
+background.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragPos = input.Position - dragStart
+        background.Position = UDim2.new(0, dragPos.X, 0, dragPos.Y)
+    end
+end)
+
+background.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
 
 -- ボタンをクリックしたときに両方の機能を同時に実行
 button.MouseButton1Click:Connect(function()
