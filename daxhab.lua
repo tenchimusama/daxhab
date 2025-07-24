@@ -1,28 +1,16 @@
--- 完全アンチリセット、アンチキック、アンチ補正強化スクリプト
-
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = player.PlayerGui
-
--- スクリプト制御変数
-local isEnabled = false
-local warpHeight = 50
-local penetrationSpeed = 5
-
--- 物理エンジンの完全無効化：衝突無視と完全固定
+-- プレイヤーの物理エンジン無効化（衝突無効化と完全固定）
 local function disablePhysics()
     for _, part in ipairs(character:GetChildren()) do
         if part:IsA("BasePart") then
-            part.CanCollide = false  -- 衝突を無効化
-            part.Anchored = true      -- 完全固定して動かない
+            part.CanCollide = false  -- 衝突無効化
+            part.Anchored = true      -- 完全固定
         end
     end
 end
 
--- サーバーからのリセット補正を無効化（追加強化版）
+-- サーバーからの位置修正要求、テレポート要求完全無効化
 local function disableServerSync()
+    -- metatableを変更して、サーバーからの補正を完全無効化
     local metatable = getmetatable(game)
     metatable.__index = function(t, key)
         if key == "TeleportEvent" then
@@ -31,22 +19,40 @@ local function disableServerSync()
         return rawget(t, key)
     end
 
-    -- サーバーからの位置修正イベントも無効化
+    -- サーバーからの位置修正イベントを完全に無効化
     game:GetService("NetworkClient").OnClientPositionChanged:Connect(function() end)
+
+    -- サーバーからの位置修正要求を完全に無効化するためのイベントリスナーを追加
+    game:GetService("NetworkClient").OnClientEvent:Connect(function(eventName)
+        if eventName == "Teleport" then
+            return nil  -- サーバーからのテレポート要求を無視
+        end
+    end)
 end
 
--- 強制的に位置を維持してリセットを防ぐ
+-- 強化した位置ロック
 local function forcePositionLock()
     game:GetService("RunService").Heartbeat:Connect(function()
         if isEnabled then
-            humanoidRootPart.CFrame = humanoidRootPart.CFrame
+            -- プレイヤーの位置を強制的に維持（運営側からの補正を完全無視）
+            humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position)  -- 自分の位置を維持
+        end
+    end)
+end
+
+-- 完全リセット回避のための強力なロック
+local function preventTeleportReset()
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if isEnabled then
+            -- 毎フレームで位置を確認し、サーバーの補正を完全に回避
+            humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position)  -- 自分の位置を強制維持
         end
     end)
 end
 
 -- ワープ＆貫通統合：強化バージョン
 local function teleportAndPenetrate()
-    -- 強力なワープ位置設定（50 studs上にワープ）
+    -- ワープ位置設定（50 studs上にワープ）
     local targetPosition = humanoidRootPart.Position + Vector3.new(0, warpHeight, 0)
     humanoidRootPart.CFrame = CFrame.new(targetPosition)
 
@@ -58,6 +64,9 @@ local function teleportAndPenetrate()
 
     -- 位置ロック強化
     forcePositionLock()
+
+    -- リセット回避強化
+    preventTeleportReset()
 
     -- 貫通処理（障害物を通過）
     while isEnabled do
@@ -71,19 +80,6 @@ local function teleportAndPenetrate()
         end
         wait(0.1) -- 貫通速度調整
     end
-end
-
--- サーバーからのキック防止（完全無効化）
-local function preventKick()
-    -- 通常のキックメカニズムを無視
-    game:GetService("Players").PlayerAdded:Connect(function(newPlayer)
-        if newPlayer == player then
-            -- 強制的にサーバーからのキックを無効化
-            pcall(function()
-                game:GetService("Players").LocalPlayer:Kick("ゲームが強制終了されました")  -- エラーメッセージも無効化
-            end)
-        end
-    end)
 end
 
 -- 背景にタイトルと作者名を表示
@@ -131,6 +127,3 @@ forcePositionLock()
 
 -- 背景テキストを表示
 createBackgroundText()
-
--- キック防止を強化
-preventKick()
