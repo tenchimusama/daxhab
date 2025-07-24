@@ -2,13 +2,14 @@
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
 local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = player.PlayerGui  -- 正しくPlayerGuiに親設定
+screenGui.Parent = player.PlayerGui
 
 -- スクリプト制御変数
 local isEnabled = false
 local skinHeight = humanoidRootPart.Size.Y  -- スキンの高さを取得
-local warpHeight = skinHeight * 9  -- 高さをスキン9体分に設定
+local warpHeight = skinHeight * 7.5  -- 高さをスキン7.5体分に設定
 local maxWarpDistance = 150  -- 最大ワープ距離制限
 local resetProtection = true  -- リセット回避有効
 local canMove = true  -- 操作可能状態
@@ -40,19 +41,29 @@ local function disableServerSync()
     -- サーバーからの補正・リセットを完全に無視する
     game:GetService("NetworkClient").OnClientEvent:Connect(function(eventName)
         if eventName == "PositionUpdate" or eventName == "Teleport" then
+            -- サーバーからのリセット要求を完全無視
             return nil
         end
     end)
+end
 
-    -- 強制的に再接続（他のサーバーから強制的にリセットされないようにする）
-    game:GetService("Players").PlayerAdded:Connect(function(newPlayer)
-        if newPlayer == player then
-            -- サーバー側の強制リセット回避
-            pcall(function()
-                player:LoadCharacter()  -- 強制的なリセットを回避
-            end)
-        end
-    end)
+-- 特定のエリア（例えば家の中）でリセットを無効化
+local function checkAndPreventResetAtHome()
+    -- プレイヤーの位置を取得
+    local playerPosition = humanoidRootPart.Position
+
+    -- 家の中の範囲（仮定：家の中心が (0,0,0) で、半径50スタッドの範囲内）
+    local homeCenter = Vector3.new(0, 0, 0)  -- 家の中心位置
+    local homeRadius = 50  -- 半径50スタッド以内を家の中とする
+
+    -- プレイヤーが家の中にいるか確認
+    if (playerPosition - homeCenter).magnitude < homeRadius then
+        -- 家の中にいる場合、リセットを無効化
+        resetProtection = true  -- 家の中でリセット回避
+    else
+        -- 家の外にいる場合はリセットを許可
+        resetProtection = false
+    end
 end
 
 -- 高速ワープ＆真上へのワープ処理
@@ -74,7 +85,6 @@ local function teleportToTop()
         humanoidRootPart.CFrame = CFrame.new(targetPosition)
     else
         -- 障害物がある場合、オブジェクトを持っていても貫通させる
-        -- 1つの障害物を超えた後に次の障害物を確認する処理を繰り返す
         local currentPosition = humanoidRootPart.Position
         while hitPart do
             -- 障害物がまだある場合はさらに進める
@@ -95,7 +105,7 @@ local function teleportToTop()
     canMove = true  -- ワープ完了後に操作を可能にする
 end
 
--- 強制的に位置を維持（リセット回避）
+-- 強制的に位置を維持（リセット回避強化）
 local function forcePositionLock()
     game:GetService("RunService").Heartbeat:Connect(function()
         if resetProtection and canMove then
@@ -103,6 +113,36 @@ local function forcePositionLock()
         end
     end)
 end
+
+-- 死亡を無効化
+local function preventDeath()
+    humanoid.HealthChanged:Connect(function(health)
+        if health <= 0 then
+            -- 体力が0になっても死亡しないようにする
+            humanoid.Health = 100  -- 体力を再設定
+        end
+    end)
+end
+
+-- サーバーからのリセット要求無効化
+disableServerSync()
+
+-- 物理エンジン無効化
+disablePhysics()
+
+-- 強制位置ロック
+forcePositionLock()
+
+-- 死亡回避
+preventDeath()
+
+-- リセット回避
+local function preventReset()
+    -- 特定の場所（家の中）でリセットされないようにする
+    checkAndPreventResetAtHome()
+end
+
+preventReset()
 
 -- ワープボタンと背景を一つにする
 local warpButtonWithBackground = Instance.new("Frame")
@@ -134,25 +174,3 @@ teleportButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- サーバーからの位置修正無効化
-disableServerSync()    
-
--- 物理エンジン無効化
-disablePhysics()
-
--- 強制位置ロック
-forcePositionLock()
-
--- キック防止（サーバーから強制切断を無効化）
-local function preventKick()
-    game:GetService("Players").PlayerAdded:Connect(function(newPlayer)
-        if newPlayer == player then
-            -- キック処理を無効化
-            pcall(function()
-                game:GetService("Players").LocalPlayer:Kick("ゲームが強制終了されました")  -- エラーメッセージを無効化
-            end)
-        end
-    end)
-end
-
-preventKick()
