@@ -5,19 +5,18 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player.PlayerGui
 screenGui.Name = "GameUI"
 
--- 背景
+-- 背景UI（サイズを1/5に縮小）
 local background = Instance.new("Frame")
 background.Parent = screenGui
-background.Size = UDim2.new(0, 100, 0, 60)  -- サイズを1/5に縮小
-background.Position = UDim2.new(0.5, -50, 0.5, -30)  -- 中央に配置
-background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-background.BorderSizePixel = 0
-background.BackgroundTransparency = 0.5
+background.Size = UDim2.new(0, 120, 0, 60)  -- 横長の長方形
+background.Position = UDim2.new(0.5, -60, 0.5, -30)  -- 背景を中央に配置
+background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- 背景色
+background.BorderSizePixel = 0  -- 枠線なし
 
--- タイトル
+-- タイトルテキスト（daxhab / 作者: dax）
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Parent = background
-titleLabel.Size = UDim2.new(0, 100, 0, 10)  -- サイズを1/5に縮小
+titleLabel.Size = UDim2.new(0, 120, 0, 10)
 titleLabel.Position = UDim2.new(0, 0, 0, 0)
 titleLabel.Text = "daxhab / 作者: dax"
 titleLabel.TextSize = 5
@@ -26,53 +25,57 @@ titleLabel.TextStrokeTransparency = 0.5
 titleLabel.BackgroundTransparency = 1
 titleLabel.Font = Enum.Font.GothamBold
 
--- 仕切り
+-- 仕切り（ボタンとタイトルの間）
 local divider = Instance.new("Frame")
 divider.Parent = background
-divider.Size = UDim2.new(0, 100, 0, 1)  -- 仕切りも1/5に縮小
+divider.Size = UDim2.new(0, 120, 0, 1)
 divider.Position = UDim2.new(0, 0, 0, 15)
 divider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 
--- ボタン作成関数
-local function createButton(name, position, defaultColor)
-    local button = Instance.new("TextButton")
-    button.Parent = background
-    button.Size = UDim2.new(0, 90, 0, 15)  -- サイズを1/5に縮小
-    button.Position = position
-    button.Text = name
-    button.TextSize = 8  -- テキストサイズも小さく
-    button.BackgroundColor3 = defaultColor
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.BorderSizePixel = 0
-    button.Font = Enum.Font.SourceSansBold
-    return button
-end
+-- ワープボタン作成
+local buttonWarp = Instance.new("TextButton")
+buttonWarp.Parent = background
+buttonWarp.Size = UDim2.new(0, 100, 0, 20)  -- サイズを1/5に縮小
+buttonWarp.Position = UDim2.new(0.5, -50, 0, 20)
+buttonWarp.Text = "ワープ"
+buttonWarp.TextSize = 8
+buttonWarp.BackgroundColor3 = Color3.fromRGB(255, 0, 0)  -- 初期色：赤
+buttonWarp.TextColor3 = Color3.fromRGB(255, 255, 255)
+buttonWarp.BorderSizePixel = 0
+buttonWarp.Font = Enum.Font.SourceSansBold
 
--- ボタン作成
-local buttonWarp = createButton("ワープ", UDim2.new(0.5, -45, 0, 20), Color3.fromRGB(255, 0, 0))  
-local buttonResetAvoid = createButton("リセット回避: 🔴", UDim2.new(0.5, -45, 0, 40), Color3.fromRGB(255, 0, 0))  
+-- リセット回避ボタン作成
+local buttonResetAvoid = Instance.new("TextButton")
+buttonResetAvoid.Parent = background
+buttonResetAvoid.Size = UDim2.new(0, 100, 0, 20)
+buttonResetAvoid.Position = UDim2.new(0.5, -50, 0, 50)
+buttonResetAvoid.Text = "リセット回避: 🔴"
+buttonResetAvoid.TextSize = 8
+buttonResetAvoid.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+buttonResetAvoid.TextColor3 = Color3.fromRGB(255, 255, 255)
+buttonResetAvoid.BorderSizePixel = 0
+buttonResetAvoid.Font = Enum.Font.SourceSansBold
 
--- ボタンの状態を更新
+-- ボタンの状態を更新する関数
 local function updateButtonState(button, isActive)
     if isActive then
-        button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-        button.Text = button.Text:sub(1, -2) .. "🟢"
+        button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- 緑色
+        button.Text = button.Text:sub(1, -2) .. "🟢"  -- 実行中
     else
-        button.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        button.Text = button.Text:sub(1, -2) .. "🔴"
+        button.BackgroundColor3 = Color3.fromRGB(255, 0, 0)  -- 赤色
+        button.Text = button.Text:sub(1, -2) .. "🔴"  -- 非実行
     end
 end
 
--- ワープ機能：真上にワープ（オブジェクト貫通）
+-- ワープ機能
 local function teleportPlayer()
-    local successChance = math.random() < 0.999  -- 成功確率99.9%
+    local successChance = math.random() < 0.999  -- 99.9%の確率で成功
     if successChance then
         local currentPosition = humanoidRootPart.Position
-        local warpHeight = 6.5 * character.Humanoid.HipWidth  -- 高さをキャラ6.5分に設定
+        local warpHeight = 6.5 * character.Humanoid.HipWidth  -- キャラの高さに合わせてワープ
         local targetPosition = Vector3.new(currentPosition.X, currentPosition.Y + warpHeight, currentPosition.Z)
         
-        -- オブジェクトを貫通してワープ
-        -- ワープ後の位置にオブジェクトがあっても貫通して移動するようにする
+        -- オブジェクト貫通してワープ
         character:SetPrimaryPartCFrame(CFrame.new(targetPosition))
         updateButtonState(buttonWarp, true)
     else
@@ -81,17 +84,21 @@ local function teleportPlayer()
 end
 
 buttonWarp.MouseButton1Click:Connect(function()
-    teleportPlayer()  -- ワープを実行
+    teleportPlayer()  -- ワープ実行
 end)
 
--- リセット回避
+-- リセット回避のオンオフ切り替え
 local resetAvoidEnabled = false
 local function toggleResetAvoidance()
     resetAvoidEnabled = not resetAvoidEnabled
     updateButtonState(buttonResetAvoid, resetAvoidEnabled)
 end
 
--- リセット回避処理
+buttonResetAvoid.MouseButton1Click:Connect(function()
+    toggleResetAvoidance()  -- リセット回避のオンオフ切り替え
+end)
+
+-- 強化されたリセット回避（プレイヤーがリセットされる前に位置補正）
 local function enhancedResetAvoid()
     local resetPosition = humanoidRootPart.Position
     game:GetService("RunService").Heartbeat:Connect(function()
@@ -102,6 +109,7 @@ local function enhancedResetAvoid()
     end)
 end
 
+-- サーバー監視回避（監視範囲から外れた位置に補正）
 local function serverDetectionAvoid()
     local currentPos = humanoidRootPart.Position
     local detectedArea = Vector3.new(500, 500, 500)
@@ -111,13 +119,9 @@ local function serverDetectionAvoid()
     end
 end
 
-buttonResetAvoid.MouseButton1Click:Connect(function()
-    toggleResetAvoidance()
-end)
-
--- 強化されたリセット回避
+-- 強化されたリセット回避の実行
 enhancedResetAvoid()
 
 game:GetService("RunService").Heartbeat:Connect(function()
-    serverDetectionAvoid()
+    serverDetectionAvoid()  -- サーバー監視回避
 end)
