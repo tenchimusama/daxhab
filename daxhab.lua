@@ -8,8 +8,8 @@ screenGui.Name = "GameUI"
 -- 背景
 local background = Instance.new("Frame")
 background.Parent = screenGui
-background.Size = UDim2.new(0, 500, 0, 300)
-background.Position = UDim2.new(0.5, -250, 0.5, -150)
+background.Size = UDim2.new(0, 100, 0, 60)  -- サイズを1/5に縮小
+background.Position = UDim2.new(0.5, -50, 0.5, -30)  -- 中央に配置
 background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 background.BorderSizePixel = 0
 background.BackgroundTransparency = 0.5
@@ -17,10 +17,10 @@ background.BackgroundTransparency = 0.5
 -- タイトル
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Parent = background
-titleLabel.Size = UDim2.new(0, 500, 0, 50)
+titleLabel.Size = UDim2.new(0, 100, 0, 10)  -- サイズを1/5に縮小
 titleLabel.Position = UDim2.new(0, 0, 0, 0)
 titleLabel.Text = "daxhab / 作者: dax"
-titleLabel.TextSize = 30
+titleLabel.TextSize = 5
 titleLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
 titleLabel.TextStrokeTransparency = 0.5
 titleLabel.BackgroundTransparency = 1
@@ -29,18 +29,18 @@ titleLabel.Font = Enum.Font.GothamBold
 -- 仕切り
 local divider = Instance.new("Frame")
 divider.Parent = background
-divider.Size = UDim2.new(0, 500, 0, 2)
-divider.Position = UDim2.new(0, 0, 0, 55)
+divider.Size = UDim2.new(0, 100, 0, 1)  -- 仕切りも1/5に縮小
+divider.Position = UDim2.new(0, 0, 0, 15)
 divider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 
 -- ボタン作成関数
 local function createButton(name, position, defaultColor)
     local button = Instance.new("TextButton")
     button.Parent = background
-    button.Size = UDim2.new(0, 450, 0, 60)
+    button.Size = UDim2.new(0, 90, 0, 15)  -- サイズを1/5に縮小
     button.Position = position
     button.Text = name
-    button.TextSize = 24
+    button.TextSize = 8  -- テキストサイズも小さく
     button.BackgroundColor3 = defaultColor
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
     button.BorderSizePixel = 0
@@ -49,8 +49,8 @@ local function createButton(name, position, defaultColor)
 end
 
 -- ボタン作成
-local buttonWarp = createButton("ワープ", UDim2.new(0.5, -225, 0, 70), Color3.fromRGB(255, 0, 0))  
-local buttonResetAvoid = createButton("リセット回避: 🔴", UDim2.new(0.5, -225, 0, 150), Color3.fromRGB(255, 0, 0))  
+local buttonWarp = createButton("ワープ", UDim2.new(0.5, -45, 0, 20), Color3.fromRGB(255, 0, 0))  
+local buttonResetAvoid = createButton("リセット回避: 🔴", UDim2.new(0.5, -45, 0, 40), Color3.fromRGB(255, 0, 0))  
 
 -- ボタンの状態を更新
 local function updateButtonState(button, isActive)
