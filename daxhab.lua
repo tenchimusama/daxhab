@@ -1,4 +1,4 @@
--- 無敵95%強化版：リセット回避・監視回避・ワープ強化スクリプト
+-- 無敵95%強化版：タップ反応修正＆仕切り追加
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -27,6 +27,13 @@ titleLabel.TextStrokeTransparency = 0.8
 titleLabel.BackgroundTransparency = 1
 titleLabel.Font = Enum.Font.Gotham
 
+-- 仕切り（ボタンとタイトルの間に仕切りを追加）
+local divider = Instance.new("Frame")
+divider.Parent = background
+divider.Size = UDim2.new(1, 0, 0, 1)  -- 仕切りを横に追加
+divider.Position = UDim2.new(0, 0, 0.3, 0)  -- ボタンの上に仕切り
+divider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+
 -- ワープボタン
 local buttonWarp = Instance.new("TextButton")
 buttonWarp.Parent = background
@@ -50,6 +57,20 @@ buttonResetAvoid.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 buttonResetAvoid.TextColor3 = Color3.fromRGB(255, 0, 255)
 buttonResetAvoid.BorderSizePixel = 0
 buttonResetAvoid.Font = Enum.Font.SourceSans
+
+-- タップイベントが反応しない問題の修正
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed then
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            -- ボタンがタップされている場合に処理
+            if buttonWarp.Visible and buttonWarp:IsPointInRegion2D(input.Position) then
+                teleportPlayer()
+            elseif buttonResetAvoid.Visible and buttonResetAvoid:IsPointInRegion2D(input.Position) then
+                toggleResetAvoidance()
+            end
+        end
+    end
+end)
 
 -- リセット回避機能
 local resetAvoidEnabled = false
@@ -140,16 +161,3 @@ end
 -- 絶対リセット回避
 enhancedResetAvoidance()
 
--- タップイベントが反応しない場合の改善
-game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed then
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-            -- ワープボタンを強制的にタップイベントに反応させる
-            if buttonWarp.Visible and buttonWarp:IsPointInRegion2D(input.Position) then
-                teleportPlayer()
-            elseif buttonResetAvoid.Visible and buttonResetAvoid:IsPointInRegion2D(input.Position) then
-                toggleResetAvoidance()
-            end
-        end
-    end
-end)
