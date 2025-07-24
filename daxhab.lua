@@ -4,6 +4,8 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 local humanoid = character:WaitForChild("Humanoid")
 local screenGui = Instance.new("ScreenGui")
+
+-- スクリーンGUIをプレイヤーの画面に追加
 screenGui.Parent = player.PlayerGui
 
 -- スクリプト制御変数
