@@ -1,46 +1,80 @@
--- daxhab ワープスクリプト
+-- daxhab 完全強化ワープスクリプト
 local player = game.Players.LocalPlayer
 local char = player.Character
 local mouse = player:GetMouse()
+local buttonPressed = false
 
--- ワープ機能の定義
+-- ワープ機能
 local function teleportToAbove()
     -- プレイヤーの現在位置を取得
     local currentPos = char.HumanoidRootPart.Position
 
-    -- ワープの目標位置（真上）
+    -- 真上にワープ先を設定
     local targetPos = Vector3.new(currentPos.X, currentPos.Y + 50, currentPos.Z)
 
-    -- ワープのエラーチェック（貫通判定）
-    local success = math.random() < 0.999  -- 99.9%成功
+    -- ワープの成功率（99.9%）
+    local success = math.random() < 0.999
     if success then
-        -- ワープを実行
-        char.HumanoidRootPart.CFrame = CFrame.new(targetPos)
-        print("ワープ成功！")
+        -- オブジェクト貫通の確認（オブジェクトがないか確認）
+        local ray = Ray.new(currentPos, Vector3.new(0, 100, 0))
+        local hit, position = game.Workspace:FindPartOnRay(ray, char)
+        
+        if not hit then
+            -- オブジェクトがない場合のみワープ
+            char.HumanoidRootPart.CFrame = CFrame.new(targetPos)
+            print("ワープ成功！")
+        else
+            -- オブジェクトがある場合、上にさらにワープ
+            while hit do
+                targetPos = targetPos + Vector3.new(0, 10, 0)
+                ray = Ray.new(targetPos, Vector3.new(0, 100, 0))
+                hit, position = game.Workspace:FindPartOnRay(ray, char)
+            end
+            char.HumanoidRootPart.CFrame = CFrame.new(targetPos)
+            print("オブジェクト貫通してワープ成功！")
+        end
     else
         print("ワープ失敗")
     end
 end
 
--- リセット回避
+-- リセット回避（回避機能最強化）
 local function resetAvoidance()
-    -- リセット前にワープを繰り返す
-    for i = 1, 10 do
+    -- リセット回避のために繰り返し高速ワープ
+    while buttonPressed do
         teleportToAbove()
-        wait(0.1)  -- 少し間をおいて繰り返す
+        wait(0.1)
     end
 end
 
--- 高速ワープ
-local function rapidWarp()
-    -- ワープの繰り返し
-    for i = 1, 10 do
-        teleportToAbove()
-        wait(0.1)  -- 高速でワープ
+-- サーバー監視回避（最強回避）
+local function serverMonitorAvoidance()
+    -- 監視回避のためにランダムに位置補正
+    while buttonPressed do
+        local randomOffset = Vector3.new(math.random(-10, 10), 0, math.random(-10, 10))
+        char.HumanoidRootPart.CFrame = CFrame.new(char.HumanoidRootPart.Position + randomOffset)
+        wait(0.5)
     end
 end
 
--- UIの設定
+-- ボタン状態変更とワープ回避開始
+local function toggleButtonState()
+    if buttonPressed then
+        -- オフにする場合、ワープと回避を停止
+        buttonPressed = false
+        print("停止！")
+    else
+        -- オンにする場合、ワープと回避を開始
+        buttonPressed = true
+        print("実行中！")
+        -- ワープと回避を同時に実行
+        teleportToAbove()
+        resetAvoidance()
+        serverMonitorAvoidance()
+    end
+end
+
+-- UIの設定（ボタン）
 local screenGui = Instance.new("ScreenGui", player.PlayerGui)
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 200, 0, 50)
@@ -52,42 +86,16 @@ button.Parent = screenGui
 
 -- ボタンのクリック時の動作
 button.MouseButton1Click:Connect(function()
-    -- ボタンの色とテキストを変更
-    button.Text = "実行中"
-    button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-
-    -- ワープと回避を実行
-    teleportToAbove()
-    resetAvoidance()
-
-    -- しばらくしてからボタンの状態を戻す
-    wait(2)
-    button.Text = "ワープ＆回避"
-    button.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    -- ボタン状態を切り替える
+    if buttonPressed then
+        button.Text = "ワープ＆回避"
+        button.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    else
+        button.Text = "実行中"
+        button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    end
+    toggleButtonState() -- 状態を変更して実行
 end)
-
--- サーバー監視回避（仮想的な監視回避を行う）
-local function serverMonitorAvoidance()
-    -- プレイヤーが監視範囲に近づいた場合、位置をランダムに補正
-    while true do
-        -- 監視範囲に近づいた場合、ランダムに移動
-        local randomOffset = Vector3.new(math.random(-10, 10), 0, math.random(-10, 10))
-        char.HumanoidRootPart.CFrame = CFrame.new(char.HumanoidRootPart.Position + randomOffset)
-        wait(1)  -- 1秒ごとにチェック
-    end
-end
-
--- 最強回避機能
-local function ultimateAvoidance()
-    -- 高速ワープと監視回避を組み合わせて最強の回避を実現
-    for i = 1, 10 do
-        rapidWarp()
-        wait(0.1)
-    end
-end
-
--- 回避を常に実行
-ultimateAvoidance()
 
 -- UIが画面に表示されるように
 screenGui.Enabled = true
