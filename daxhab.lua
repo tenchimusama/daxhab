@@ -1,5 +1,5 @@
--- daxhab_maximum_v20.lua
--- 最強ワープ&貫通スクリプト（高度な回避、ドラッグ機能、背景＆ボタンデザイン）
+-- daxhab_maximum_v22.lua
+-- 最強ワープ&貫通スクリプト（高度なリセット回避、ボタン名変更）
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -112,7 +112,7 @@ end
 -- ボタンの作成（ドラッグ可能で小さめのポップデザイン）
 local teleportButton = Instance.new("TextButton")
 teleportButton.Parent = screenGui
-teleportButton.Text = "ワープ＆貫通開始"
+teleportButton.Text = "ワープ"
 teleportButton.TextSize = 16
 teleportButton.Size = UDim2.new(0, 150, 0, 40)
 teleportButton.Position = UDim2.new(0.5, -75, 0.6, 0)
@@ -149,10 +149,10 @@ teleportButton.MouseButton1Click:Connect(function()
     -- ワープ＆貫通オン/オフの切り替え
     if isEnabled then
         isEnabled = false  -- オフにする
-        teleportButton.Text = "ワープ＆貫通開始"
+        teleportButton.Text = "ワープ"
     else
         isEnabled = true  -- オンにする
-        teleportButton.Text = "ワープ＆貫通停止"
+        teleportButton.Text = "ワープ停止"
         teleportAndPenetrate()  -- ワープ＆貫通開始
     end
 end)
