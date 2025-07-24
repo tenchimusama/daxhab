@@ -7,9 +7,7 @@ screenGui.Parent = player.PlayerGui  -- 正しくPlayerGuiに親設定
 
 -- スクリプト制御変数
 local isEnabled = false
-local warpHeight = 100  -- 初期ワープ距離
-local penetrationSpeed = 10  -- 高速貫通
-local speedMultiplier = 3  -- 高速ワープの加速係数
+local warpHeight = 100  -- ワープ先の高さ設定
 local maxWarpDistance = 150  -- 最大ワープ距離制限
 local resetProtection = true  -- リセット回避有効
 local canMove = true  -- 操作可能状態
@@ -73,6 +71,15 @@ local function teleportToTop()
     canMove = true  -- ワープ完了後に操作を可能にする
 end
 
+-- 強制的に位置を維持（リセット回避）
+local function forcePositionLock()
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if resetProtection and canMove then
+            humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position)  -- 常に現在の位置を維持
+        end
+    end)
+end
+
 -- ワープボタンと背景を一つにする
 local warpButtonWithBackground = Instance.new("Frame")
 warpButtonWithBackground.Parent = screenGui
@@ -108,6 +115,9 @@ disableServerSync()
 
 -- 物理エンジン無効化
 disablePhysics()
+
+-- 強制位置ロック
+forcePositionLock()
 
 -- キック防止（サーバーから強制切断を無効化）
 local function preventKick()
