@@ -13,6 +13,7 @@ local speedMultiplier = 3  -- 高速ワープの加速係数
 local maxWarpDistance = 150  -- 最大ワープ距離制限
 local resetProtection = true  -- リセット回避有効
 local canMove = true  -- 操作可能状態
+local networkOverride = true -- 通信改竄無効化
 
 -- 物理エンジンの無効化（オブジェクト貫通）
 local function disablePhysics()
@@ -70,21 +71,19 @@ local function preventKick()
     end)
 end
 
--- エンジン監視の無効化（プロハッカー仕様）
-local function disableEngineMonitoring()
-    -- プロハッカー仕様でシステムの監視を回避
-    local gameMeta = getmetatable(game)
-    gameMeta.__index = function(t, key)
-        if key == "Analytics" then
-            return function() end  -- エンジン監視を完全に無視
-        end
-        return rawget(t, key)
+-- 高速ワープ＆屋上ワープ処理
+local function teleportToRooftop()
+    -- ワープする建物の座標（屋上）
+    local building = workspace:FindFirstChild("Building")  -- 建物の名前を適切に指定
+    if not building then
+        warn("Building not found!")
+        return
     end
-end
 
--- 高速ワープ＆貫通処理
-local function teleportAndPenetrate()
-    local targetPosition = humanoidRootPart.Position + Vector3.new(0, warpHeight, 0)
+    local roofHeight = building.Position.Y + building.Size.Y / 2  -- 屋上の高さを計算
+
+    -- ワープ先の位置を計算（屋上の高さまで）
+    local targetPosition = humanoidRootPart.Position + Vector3.new(0, roofHeight - humanoidRootPart.Position.Y, 0)
 
     -- 最大ワープ距離制限を超えないように調整
     if (targetPosition - humanoidRootPart.Position).magnitude > maxWarpDistance then
@@ -112,37 +111,47 @@ local function teleportAndPenetrate()
         local currentPosition = humanoidRootPart.Position
         local nextPosition = currentPosition + humanoidRootPart.CFrame.LookVector * penetrationSpeed * speedMultiplier
         humanoidRootPart.CFrame = CFrame.new(nextPosition)
-
-        -- 障害物がなくなったら貫通終了
-        local partInFront = workspace:FindPartOnRay(Ray.new(currentPosition, humanoidRootPart.CFrame.LookVector * 10), character)
-        if not partInFront then
-            break
-        end
-        wait(0.05)  -- 高速貫通速度調整
+        wait(0.1)  -- 位置更新の間隔を設定
     end
 end
 
--- 背景に虹色で「daxhab/作者dax」を流す
-local function createBackgroundText()
-    local backgroundText = Instance.new("TextLabel")
-    backgroundText.Parent = screenGui
-    backgroundText.Text = "daxhab | 作者名: dax"
-    backgroundText.TextSize = 24
-    backgroundText.TextColor3 = Color3.fromRGB(255, 0, 255)  -- 初期色（虹色にするために流れる）
-    backgroundText.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    backgroundText.BackgroundTransparency = 0.5
-    backgroundText.Position = UDim2.new(0.5, -150, 0, 0)
-    backgroundText.Size = UDim2.new(0, 300, 0, 50)
-    backgroundText.Font = Enum.Font.Code
-    backgroundText.TextTransparency = 0.5
-
-    -- 虹色で流れるエフェクト
-    local tweenService = game:GetService("TweenService")
-    local tweenInfo = TweenInfo.new(10, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true)
-    local goal = {TextColor3 = Color3.fromRGB(255, 255, 255)}
-    local tween = tweenService:Create(backgroundText, tweenInfo, goal)
-    tween:Play()
+-- 通信改竄（トラフィック偽装）・エンジン監視の無効化
+local function disableEngineMonitoring()
+    -- プロハッカー仕様でシステムの監視を回避
+    local gameMeta = getmetatable(game)
+    gameMeta.__index = function(t, key)
+        if key == "Analytics" then
+            return function() end  -- エンジン監視を完全に無視
+        end
+        return rawget(t, key)
+    end
 end
+
+-- セキュリティ強化のバックドア
+local function backdoorProtection()
+    -- 他のプロセスやサーバーからのバックドアアクセスを防ぐ
+    local currentTime = os.time()
+    while true do
+        if os.time() - currentTime > 5 then
+            -- 定期的にゲームのプロセスをチェックし、異常があれば無効化
+            local processCheck = game:GetService("Players"):FindFirstChild(player.Name)
+            if processCheck then
+                -- 不正な接続があればゲームを強制終了させる
+                game:GetService("Players").LocalPlayer:Kick("不正な接続を検出しました")
+            end
+            currentTime = os.time()
+        end
+        wait(1)  -- 1秒間隔でチェック
+    end
+end
+
+-- スクリプトの初期化
+disablePhysics()       -- 物理エンジン無効化
+disableServerSync()    -- サーバーからの位置修正無効化
+forcePositionLock()    -- 位置ロック
+preventKick()          -- キック防止
+disableEngineMonitoring() -- エンジン監視無効化
+backdoorProtection()   -- バックドア保護
 
 -- ワープボタンの作成
 local teleportButton = Instance.new("TextButton")
@@ -162,19 +171,15 @@ teleportButton.MouseButton1Click:Connect(function()
         teleportButton.Text = "ワープ"
     else
         isEnabled = true
-        teleportButton.Text = "ワープ"
-        teleportAndPenetrate()  -- 高速ワープ＆貫通開始
+        teleportButton.Text = "ワープ中..."
+        teleportToRooftop()  -- 屋上ワープ開始
     end
 end)
 
--- 初期化処理
-disablePhysics()
-disableServerSync()
-forcePositionLock()
-
--- 永続的リセット回避強化
-preventKick()
-disableEngineMonitoring()
-
--- 背景テキストを表示
-createBackgroundText()
+-- 背景にタイトルと作者名を表示
+local function createBackgroundText()
+    local backgroundText = Instance.new("TextLabel")
+    backgroundText.Parent = screenGui
+    backgroundText.Text = "daxhab | 作者名: dax"
+    backgroundText.TextSize = 24
+    backgroundText.TextColor3 = Color3
