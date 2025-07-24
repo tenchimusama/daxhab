@@ -2,12 +2,14 @@
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
 
-local playerHeight = 7.5 * 5  -- キャラの高さを7.5人分 (1人あたり5 studs)
-local moveSpeed = 0.1  -- 移動速度を設定（遅くして自然に見せる）
+-- プレイヤー高さの設定（7.5人分）
+local playerHeight = 7.5 * 5  -- 1人あたり5 studsとして7.5人分
+local moveSpeed = 0.1  -- 移動速度（遅くして自然に見せる）
 local movementDelay = 0.1  -- 移動後のディレイ
 
--- 真上にワープする関数
+-- キャラを7.5人分の高さだけ真上にワープする関数
 local function moveUp()
     local targetPosition = humanoidRootPart.Position + Vector3.new(0, playerHeight, 0)  -- 現在位置の真上
     smoothMove(targetPosition)
@@ -40,9 +42,17 @@ end
 -- UIにボタンを作成
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player.PlayerGui
-screenGui.IgnoreGuiInset = true -- ゲーム画面の端を無視して全体に表示
+screenGui.IgnoreGuiInset = true  -- ゲーム画面の端を無視して全体に表示
 
--- ボタンの背景とボタン作成
+-- 背景とボタンを一体化したデザイン
+local background = Instance.new("Frame")
+background.Size = UDim2.new(0, player.PlayerGui.AbsoluteSize.X / 2, 0, player.PlayerGui.AbsoluteSize.Y / 8)
+background.Position = UDim2.new(0.5, -player.PlayerGui.AbsoluteSize.X / 4, 0.5, -player.PlayerGui.AbsoluteSize.Y / 16)
+background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- 背景を黒に設定
+background.BackgroundTransparency = 0.5
+background.Parent = screenGui
+
+-- ボタンの作成
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 250, 0, 100)
 button.Position = UDim2.new(0.5, -125, 0.5, -50)
@@ -55,16 +65,7 @@ button.Font = Enum.Font.Code -- ハッカーフォントに設定
 button.BackgroundTransparency = 0.5
 button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- 背景色（緑）
 
--- ボタンの背景にグラデーションを追加
-local gradient = Instance.new("UIGradient")
-gradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 0)),  -- 緑
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 0, 255)),  -- 青
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))   -- 赤
-})
-gradient.Parent = button
-
-button.Parent = screenGui
+button.Parent = background  -- ボタンを背景の中に配置
 
 -- ボタンがクリックされたときの処理
 button.MouseButton1Click:Connect(function()
@@ -81,22 +82,22 @@ local dragging = false
 local dragStart = nil
 local startPos = nil
 
-button.InputBegan:Connect(function(input)
+background.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = true
         dragStart = input.Position
-        startPos = button.Position
+        startPos = background.Position
     end
 end)
 
-button.InputChanged:Connect(function(input)
+background.InputChanged:Connect(function(input)
     if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
         local delta = input.Position - dragStart
-        button.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        background.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
 
-button.InputEnded:Connect(function(input)
+background.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = false
     end
@@ -108,3 +109,26 @@ while true do
     humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position + Vector3.new(math.random(-0.1, 0.1), 0, math.random(-0.1, 0.1)))
     wait(0.5)  -- ランダム待機時間で不規則な動き
 end
+
+-- ワープ後の物理設定変更（貫通）
+local function enableCharacterCollision()
+    -- ワープ後、物理挙動を無効化して貫通できるようにする
+    humanoidRootPart.CanCollide = false
+    character:WaitForChild("Humanoid").PlatformStand = true  -- プレイヤーが物理的に制御されないようにする
+end
+
+-- 位置が元に戻るのを防ぐため、ワープ後に物理設定を変更
+local function moveAndDisableCollisions()
+    moveUp()
+    enableCharacterCollision()
+end
+
+-- ボタンがクリックされた際、ワープ機能と貫通設定を呼び出す
+button.MouseButton1Click:Connect(function()
+    -- リセットされていたら移動停止
+    if stopIfReset() then
+        return
+    end
+    -- 真上に移動して貫通設定を適用
+    moveAndDisableCollisions()
+end)
