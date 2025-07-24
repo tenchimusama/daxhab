@@ -1,6 +1,8 @@
--- 完全リセット回避・天井貫通とワープ（プロハッカー仕様）
+-- 絶対リセット回避・監視回避・ワープ強化版
 
 local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player.PlayerGui
 screenGui.Name = "GameUI"
@@ -24,13 +26,6 @@ titleLabel.TextColor3 = Color3.fromRGB(0, 255, 0)  -- 緑色
 titleLabel.TextStrokeTransparency = 0.8
 titleLabel.BackgroundTransparency = 1  -- 背景透明
 titleLabel.Font = Enum.Font.Gotham -- マシュマロ風のフォントに変更
-
--- 仕切り（ボタンとタイトルの間に仕切りを入れる）
-local divider = Instance.new("Frame")
-divider.Parent = background
-divider.Size = UDim2.new(0, 120, 0, 1)  -- 仕切りのサイズを小さく
-divider.Position = UDim2.new(0.5, -60, 0, 15)  -- 仕切りの位置
-divider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)  -- 白色の仕切り
 
 -- ワープボタンUI（横長、文字色虹色）
 local buttonWarp = Instance.new("TextButton")
@@ -65,12 +60,12 @@ end
 
 game:GetService("RunService").Heartbeat:Connect(updateButtonTextColor)
 
--- ワープ機能（真上にワープ、ワープの高さを半分に設定）
+-- ワープ機能（真上にワープ）
 local function teleportPlayer()
     local successChance = math.random() < 0.99  -- 99%の確率で成功
     if successChance then
-        -- 高さを半分に設定（キャラクターの3.75人分の高さ）
-        local warpHeight = 10.3125  -- 半分の高さ
+        -- 高さをさらに半分に設定（キャラクターの2人分の高さ）
+        local warpHeight = 2.5  -- 半分の高さ（前回の5.15625の半分）
         local currentPosition = player.Character.HumanoidRootPart.Position
         local newPosition = Vector3.new(currentPosition.X, currentPosition.Y + warpHeight, currentPosition.Z)
         
@@ -81,24 +76,24 @@ local function teleportPlayer()
     end
 end
 
--- 天井貫通機能（瞬時に貫通）
-local function enableCeilingPass()
-    local character = player.Character
-    if character then
-        local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-        -- 高さを強化して天井貫通
-        local randomHeight = math.random(120, 200)  -- 高さをランダムで変更
-        humanoidRootPart.CFrame = humanoidRootPart.CFrame + Vector3.new(0, randomHeight, 0)  -- 一瞬で貫通
+-- **運営の監視回避と位置補正強化**
+local function avoidServerDetection()
+    local currentPosition = player.Character.HumanoidRootPart.Position
+    local detectedArea = Vector3.new(500, 500, 500)  -- 運営の監視範囲（例: XYZ座標の範囲）
+    
+    -- 監視範囲外へ補正する
+    if (currentPosition - detectedArea).Magnitude < 100 then
+        -- ランダムに位置を補正
+        local newPos = Vector3.new(math.random(-1000, 1000), currentPosition.Y, math.random(-1000, 1000))
+        player.Character:SetPrimaryPartCFrame(CFrame.new(newPos))
     end
 end
 
--- リセット回避（プロハッカー仕様）
-local resetAvoidEnabled = false  -- リセット回避を初期状態でオフに設定
+-- リセット回避（運営による位置リセットを回避）
+local resetAvoidEnabled = false
 
 local function toggleResetAvoidance()
-    resetAvoidEnabled = not resetAvoidEnabled  -- オン/オフを切り替える
-
-    -- ボタンテキストを更新
+    resetAvoidEnabled = not resetAvoidEnabled  -- オン/オフを切り替え
     if resetAvoidEnabled then
         buttonResetAvoid.Text = "リセット回避: オン"
     else
@@ -106,31 +101,38 @@ local function toggleResetAvoidance()
     end
 end
 
--- **最強リセット回避機能（プロハッカー仕様）**
+-- リセット回避処理（運営による位置リセットを回避）
 local function resetAvoidance()
     if resetAvoidEnabled then
         local lastPosition = player.Character.HumanoidRootPart.Position
         game:GetService("RunService").Heartbeat:Connect(function()
             if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local humanoidRootPart = player.Character.HumanoidRootPart
-                local currentPosition = humanoidRootPart.Position
-                
-                -- **リセットされそうなタイミング**を予測し、即座に位置を補正
+                local currentPosition = player.Character.HumanoidRootPart.Position
+                -- リセットされそうなタイミングを予測し、位置補正
                 if (currentPosition - lastPosition).Magnitude < 0.1 then
                     -- 位置が近くなったら即座に補正
-                    local newPosition = currentPosition + Vector3.new(math.random(-30, 30), 0, math.random(-30, 30))  -- より広範囲で補正
-                    humanoidRootPart.CFrame = CFrame.new(newPosition)
+                    local newPosition = currentPosition + Vector3.new(math.random(-30, 30), 0, math.random(-30, 30))
+                    player.Character.HumanoidRootPart.CFrame = CFrame.new(newPosition)
                 end
-                lastPosition = currentPosition  -- 新しい位置を記録
+                lastPosition = currentPosition
             end
         end)
+    end
+end
+
+-- 運営のブロック機能を回避するための補正
+local function destroyBlocker()
+    -- "Blocker"という名前のオブジェクトを探して削除
+    local blocker = game.Workspace:FindFirstChild("Blocker")
+    if blocker then
+        blocker:Destroy()
+        print("運営のブロック機能を破壊しました")
     end
 end
 
 -- ワープボタンのクリック処理
 buttonWarp.MouseButton1Click:Connect(function()
     teleportPlayer()  -- ワープを実行
-    enableCeilingPass()  -- 天井貫通を実行
 end)
 
 -- リセット回避ボタンのクリック処理
@@ -141,30 +143,8 @@ end)
 -- リセット回避の監視
 resetAvoidance()
 
--- ドラッグ機能を追加
-local dragging = false
-local dragInput, dragStart, dragPos
-
-background.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        dragInput = input
-    end
+-- 運営の監視回避をチェック
+game:GetService("RunService").Heartbeat:Connect(function()
+    avoidServerDetection()  -- サーバーの監視回避
+    destroyBlocker()         -- 運営のブロック機能を破壊
 end)
-
-background.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragPos = input.Position - dragStart
-        background.Position = UDim2.new(0, dragPos.X, 0, dragPos.Y)
-    end
-end)
-
-background.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-
-
