@@ -7,7 +7,8 @@ screenGui.Parent = player.PlayerGui  -- 正しくPlayerGuiに親設定
 
 -- スクリプト制御変数
 local isEnabled = false
-local warpHeight = 100  -- ワープ先の高さ設定
+local skinHeight = humanoidRootPart.Size.Y  -- スキンの高さを取得
+local warpHeight = skinHeight * 9  -- 高さをスキン9体分に設定
 local maxWarpDistance = 150  -- 最大ワープ距離制限
 local resetProtection = true  -- リセット回避有効
 local canMove = true  -- 操作可能状態
@@ -40,6 +41,16 @@ local function disableServerSync()
         if eventName == "PositionUpdate" or eventName == "Teleport" then
             -- 無視
             return nil
+        end
+    end)
+
+    -- 強制的に再接続（他のサーバーから強制的にリセットされないようにする）
+    game:GetService("Players").PlayerAdded:Connect(function(newPlayer)
+        if newPlayer == player then
+            -- サーバー側の強制リセット回避
+            pcall(function()
+                player:LoadCharacter()  -- 強制的なリセットを回避
+            end)
         end
     end)
 end
