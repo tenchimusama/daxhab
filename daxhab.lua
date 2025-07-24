@@ -1,5 +1,5 @@
--- daxhab_maximum_v28.lua
--- 最強ワープ&貫通スクリプト（アンチリセット・アンチキック強化）
+-- daxhab_maximum_v29.lua
+-- 最強ワープ&貫通スクリプト（高度なアンチリセット・アンチキック対策）
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -33,7 +33,7 @@ local function disableServerSync()
     end
 end
 
--- サーバーによる位置補正を完全無効化
+-- 位置監視と強制位置保持
 local function preventPositionReset()
     game:GetService("RunService").Heartbeat:Connect(function()
         if isEnabled then
@@ -41,6 +41,20 @@ local function preventPositionReset()
             humanoidRootPart.CFrame = humanoidRootPart.CFrame
         end
     end)
+end
+
+-- サーバー同期の完全無効化（リセット防止）
+local function preventTeleportCorrection()
+    local remote = player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"):WaitForChild("PlayerScripts")
+    local function disableTeleport()
+        remote = remote:FindFirstChild("TeleportService") or remote:FindFirstChild("TeleportEvent")
+        if remote then
+            remote.OnServerEvent:Connect(function()
+                return  -- サーバーからのイベントを無視
+            end)
+        end
+    end
+    disableTeleport()
 end
 
 -- 高度なリセット回避機能：キャラクターの位置をリアルタイムで監視し、強制的に維持
@@ -54,21 +68,6 @@ local function advancedResetPrevention()
 end
 
 -- サーバーによる不正な位置補正を防ぐため、サーバーからの位置情報を完全に無視
-local function preventTeleportCorrection()
-    -- サーバーから位置補正を受け取らないように、位置の同期を完全に無効化
-    local remote = player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"):WaitForChild("PlayerScripts")
-    local function disableTeleport()
-        remote = remote:FindFirstChild("TeleportService") or remote:FindFirstChild("TeleportEvent")
-        if remote then
-            remote.OnServerEvent:Connect(function()
-                return  -- サーバーからのイベントを無視
-            end)
-        end
-    end
-    disableTeleport()
-end
-
--- サーバーキックの防止：強制的にキックを防ぐ
 local function preventKick()
     -- プレイヤーがキックされないように監視
     game:GetService("Players").PlayerRemoving:Connect(function(playerLeaving)
