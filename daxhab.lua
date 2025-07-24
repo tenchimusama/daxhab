@@ -8,11 +8,48 @@ local humanoid = character:WaitForChild("Humanoid")
 local playerHeight = 7.5 * 5  -- 1人あたり5 studsとして7.5人分
 local moveSpeed = 0.1  -- 移動速度（遅くして自然に見せる）
 local movementDelay = 0.1  -- 移動後のディレイ
+local randomMoveDelay = 0.5  -- ランダム化の間隔
 
--- キャラを7.5人分の高さだけ真上にワープする関数
-local function moveUp()
+-- キャラクターの物理を無効化（貫通対策）
+local function disableCharacterPhysics()
+    humanoidRootPart.CanCollide = false  -- キャラクターが他の物体と衝突しないように
+    humanoid.PlatformStand = true  -- プレイヤーを物理エンジンから切り離し、自由に動けるように
+end
+
+-- キャラクターがリセットされた場合、位置を補正する
+local function fixReset()
+    if humanoidRootPart.Position.Y < 1 then  -- Y座標が低い＝リセット状態
+        print("リセット状態が検出されました。位置を補正します。")
+        -- 位置を補正（少し上に移動してリセット回避）
+        humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position + Vector3.new(0, 5, 0))
+    end
+end
+
+-- 定期的に位置補正を行い、リセットを防ぐ
+local function preventReset()
+    while true do
+        fixReset()  -- リセット回避処理
+        wait(1)  -- 1秒間隔で確認
+    end
+end
+
+-- 真上にワープする関数（天井がない限りワープし続ける）
+local function moveUpUntilNoCeiling()
     local targetPosition = humanoidRootPart.Position + Vector3.new(0, playerHeight, 0)  -- 現在位置の真上
-    smoothMove(targetPosition)
+
+    while true do
+        -- ワープ移動
+        smoothMove(targetPosition)
+        
+        -- 目の前に天井があるかチェック（キャラクターの真上の一定範囲を確認）
+        if not isCeilingAbove() then
+            break  -- 天井がなくなったら停止
+        end
+        
+        -- 次の位置にワープ
+        targetPosition = humanoidRootPart.Position + Vector3.new(0, playerHeight, 0)
+        wait(movementDelay)  -- 少し待機してから次の移動
+    end
 end
 
 -- スムーズな移動を行う関数（補間）
@@ -27,16 +64,16 @@ local function smoothMove(targetPosition)
     end
 end
 
--- リセット後に停止または補正する処理
-local function stopIfReset()
-    -- Y座標が低い＝リセット状態（条件を緩和）
-    if humanoidRootPart.Position.Y < 3 then  
-        print("リセット状態が検出されました。位置を補正します。")
-        -- リセットされた場合、少しだけ位置を補正
-        humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position + Vector3.new(0, 5, 0))  -- Y座標を少し上に補正
-        return true
+-- 天井があるかどうかを確認する関数（真上に障害物があるかをチェック）
+local function isCeilingAbove()
+    local ray = Ray.new(humanoidRootPart.Position, Vector3.new(0, playerHeight, 0))  -- 真上に向かってレイを飛ばす
+    local hitPart, hitPosition = workspace:FindPartOnRay(ray, character)  -- レイが障害物に当たるかチェック
+
+    if hitPart then
+        return true  -- 障害物（天井）があればtrue
+    else
+        return false  -- 障害物がなければfalse
     end
-    return false
 end
 
 -- UIにボタンを作成
@@ -69,12 +106,8 @@ button.Parent = background  -- ボタンを背景の中に配置
 
 -- ボタンがクリックされたときの処理
 button.MouseButton1Click:Connect(function()
-    -- リセットされていたら移動停止
-    if stopIfReset() then
-        return
-    end
-    -- 真上に移動
-    moveUp()
+    -- 真上に移動して天井がなくなるまでワープ
+    moveUpUntilNoCeiling()
 end)
 
 -- ドラッグ可能にするための処理
@@ -110,25 +143,5 @@ while true do
     wait(0.5)  -- ランダム待機時間で不規則な動き
 end
 
--- ワープ後の物理設定変更（貫通）
-local function enableCharacterCollision()
-    -- ワープ後、物理挙動を無効化して貫通できるようにする
-    humanoidRootPart.CanCollide = false
-    character:WaitForChild("Humanoid").PlatformStand = true  -- プレイヤーが物理的に制御されないようにする
-end
-
--- 位置が元に戻るのを防ぐため、ワープ後に物理設定を変更
-local function moveAndDisableCollisions()
-    moveUp()
-    enableCharacterCollision()
-end
-
--- ボタンがクリックされた際、ワープ機能と貫通設定を呼び出す
-button.MouseButton1Click:Connect(function()
-    -- リセットされていたら移動停止
-    if stopIfReset() then
-        return
-    end
-    -- 真上に移動して貫通設定を適用
-    moveAndDisableCollisions()
-end)
+-- リセット回避のため、定期的に位置を補正
+preventReset()
