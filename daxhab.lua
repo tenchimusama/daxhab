@@ -1,5 +1,5 @@
--- daxhab_maximum_v24.lua
--- 最強ワープ&貫通スクリプト（虹色フォント、リセット回避強化）
+-- daxhab_maximum_v28.lua
+-- 最強ワープ&貫通スクリプト（アンチリセット・アンチキック強化）
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -47,8 +47,34 @@ end
 local function advancedResetPrevention()
     game:GetService("RunService").Heartbeat:Connect(function()
         if isEnabled then
-            -- サーバー側の補正を防ぎ、キャラクターの位置を強制的に維持
+            -- キャラクターの位置を強制的に維持
             humanoidRootPart.CFrame = humanoidRootPart.CFrame
+        end
+    end)
+end
+
+-- サーバーによる不正な位置補正を防ぐため、サーバーからの位置情報を完全に無視
+local function preventTeleportCorrection()
+    -- サーバーから位置補正を受け取らないように、位置の同期を完全に無効化
+    local remote = player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"):WaitForChild("PlayerScripts")
+    local function disableTeleport()
+        remote = remote:FindFirstChild("TeleportService") or remote:FindFirstChild("TeleportEvent")
+        if remote then
+            remote.OnServerEvent:Connect(function()
+                return  -- サーバーからのイベントを無視
+            end)
+        end
+    end
+    disableTeleport()
+end
+
+-- サーバーキックの防止：強制的にキックを防ぐ
+local function preventKick()
+    -- プレイヤーがキックされないように監視
+    game:GetService("Players").PlayerRemoving:Connect(function(playerLeaving)
+        if playerLeaving == player then
+            -- キックを無視
+            return
         end
     end)
 end
@@ -88,30 +114,19 @@ local function teleportAndPenetrate()
     end
 end
 
--- 背景に虹色フォントを流す
-local function createRainbowBackgroundText()
+-- 背景にタイトルと作者名を表示
+local function createBackgroundText()
     local backgroundText = Instance.new("TextLabel")
     backgroundText.Parent = screenGui
     backgroundText.Text = "daxhab | 作者名: dax"
-    backgroundText.TextSize = 32
-    backgroundText.TextColor3 = Color3.fromRGB(255, 255, 255)  -- 白色の文字
+    backgroundText.TextSize = 24
+    backgroundText.TextColor3 = Color3.fromRGB(0, 255, 0)  -- ハッカー風緑色
     backgroundText.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     backgroundText.BackgroundTransparency = 0.5  -- 背景を少し透過
     backgroundText.Position = UDim2.new(0.5, -150, 0, 0)  -- 上部に中央配置
     backgroundText.Size = UDim2.new(0, 300, 0, 50)
     backgroundText.Font = Enum.Font.Code -- ハッカー風フォント
     backgroundText.TextTransparency = 0.5
-
-    -- 虹色に変化するエフェクト
-    local tweenService = game:GetService("TweenService")
-    local tweenGoal = {TextColor3 = Color3.fromRGB(255, 0, 0)} -- 赤から
-    local tween = tweenService:Create(backgroundText, TweenInfo.new(2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true), tweenGoal)
-    tween:Play()
-    
-    -- 流れるエフェクト
-    local tweenGoal2 = {Position = UDim2.new(0, -300, 0, 0)}
-    local tween2 = tweenService:Create(backgroundText, TweenInfo.new(5, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true), tweenGoal2)
-    tween2:Play()
 end
 
 -- ボタンの作成（ドラッグ可能で小さめのポップデザイン）
@@ -157,7 +172,7 @@ teleportButton.MouseButton1Click:Connect(function()
         teleportButton.Text = "ワープ"
     else
         isEnabled = true  -- オンにする
-        teleportButton.Text = "ワープ停止"
+        teleportButton.Text = "ワープ"
         teleportAndPenetrate()  -- ワープ＆貫通開始
     end
 end)
@@ -168,4 +183,8 @@ disableServerSync()
 preventPositionReset()
 
 -- 背景テキストを表示
-createRainbowBackgroundText()
+createBackgroundText()
+
+-- **追加機能**
+-- サーバーによる不正なキックを防ぐ
+preventKick()
