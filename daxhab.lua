@@ -25,6 +25,7 @@ end
 
 -- サーバーからの位置修正、テレポート要求完全無効化
 local function disableServerSync()
+    -- サーバーからの補正を完全に無視
     local metatable = getmetatable(game)
     metatable.__index = function(t, key)
         if key == "TeleportEvent" then
@@ -39,18 +40,7 @@ local function disableServerSync()
     -- サーバーからの補正・リセットを完全に無視する
     game:GetService("NetworkClient").OnClientEvent:Connect(function(eventName)
         if eventName == "PositionUpdate" or eventName == "Teleport" then
-            -- 無視
             return nil
-        end
-    end)
-
-    -- 強制的に再接続（他のサーバーから強制的にリセットされないようにする）
-    game:GetService("Players").PlayerAdded:Connect(function(newPlayer)
-        if newPlayer == player then
-            -- サーバー側の強制リセット回避
-            pcall(function()
-                player:LoadCharacter()  -- 強制的なリセットを回避
-            end)
         end
     end)
 end
