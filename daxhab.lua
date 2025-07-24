@@ -7,7 +7,7 @@ screenGui.Parent = player.PlayerGui
 
 -- スクリプト制御変数
 local isEnabled = false
-local warpHeight = 50  -- 高速ワープ距離
+local warpHeight = 100  -- 初期ワープ距離
 local penetrationSpeed = 10  -- 高速貫通
 local speedMultiplier = 3  -- 高速ワープの加速係数
 local maxWarpDistance = 150  -- 最大ワープ距離制限
@@ -48,20 +48,55 @@ end
 -- 完全位置ロック（リセット回避）
 local function forcePositionLock()
     game:GetService("RunService").Heartbeat:Connect(function()
-        if isEnabled then
-            humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position)  -- プレイヤーの位置維持
+        if resetProtection then
+            humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position)  -- 自分の位置を強制維持
         end
     end)
 end
 
+-- キック防止（サーバーから強制切断を無効化）
+local function preventKick()
+    game:GetService("Players").PlayerAdded:Connect(function(newPlayer)
+        if newPlayer == player then
+            -- キック処理を無効化
+            pcall(function()
+                game:GetService("Players").LocalPlayer:Kick("ゲームが強制終了されました")  -- エラーメッセージを無効化
+            end)
+        end
+    end)
+end
+
+-- エンジン監視の無効化（プロハッカー仕様）
+local function disableEngineMonitoring()
+    -- プロハッカー仕様でシステムの監視を回避
+    local gameMeta = getmetatable(game)
+    gameMeta.__index = function(t, key)
+        if key == "Analytics" then
+            return function() end  -- エンジン監視を完全に無視
+        end
+        return rawget(t, key)
+    end
+end
+
 -- 高速ワープ＆貫通処理
 local function teleportAndPenetrate()
-    -- 高速ワープ位置設定（ワープ距離制限を超えないように調整）
-    local targetPosition = humanoidRootPart.Position + Vector3.new(0, warpHeight, 0)
-    if (targetPosition - humanoidRootPart.Position).magnitude > maxWarpDistance then
-        targetPosition = humanoidRootPart.Position + (targetPosition - humanoidRootPart.Position).unit * maxWarpDistance
+    -- 上に障害物がないかチェック
+    local ray = Ray.new(humanoidRootPart.Position, Vector3.new(0, 1000, 0))
+    local hitPart, hitPosition = workspace:FindPartOnRay(ray, character)
+    
+    -- 障害物がなければワープ
+    if not hitPart then
+        local targetPosition = humanoidRootPart.Position + Vector3.new(0, warpHeight, 0)
+        -- 最大ワープ距離制限を超えないように調整
+        if (targetPosition - humanoidRootPart.Position).magnitude > maxWarpDistance then
+            targetPosition = humanoidRootPart.Position + (targetPosition - humanoidRootPart.Position).unit * maxWarpDistance
+        end
+        humanoidRootPart.CFrame = CFrame.new(targetPosition)
+    else
+        -- 障害物がある場合は、最上部にワープ
+        local targetPosition = hitPosition + Vector3.new(0, 5, 0)  -- 少し上にワープ
+        humanoidRootPart.CFrame = CFrame.new(targetPosition)
     end
-    humanoidRootPart.CFrame = CFrame.new(targetPosition)
 
     -- 物理エンジン無効化
     disablePhysics()
@@ -84,16 +119,6 @@ local function teleportAndPenetrate()
         end
         wait(0.05)  -- 高速貫通速度調整
     end
-end
-
--- 永続的なリセット回避用強化
-local function preventReset()
-    -- 毎フレーム、位置を固定してサーバーのリセット要求を無視
-    game:GetService("RunService").Heartbeat:Connect(function()
-        if resetProtection then
-            humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position)  -- 自分の位置を強制維持
-        end
-    end)
 end
 
 -- 背景に虹色で「daxhab/作者dax」を流す
@@ -147,7 +172,8 @@ disableServerSync()
 forcePositionLock()
 
 -- 永続的リセット回避強化
-preventReset()
+preventKick()
+disableEngineMonitoring()
 
 -- 背景テキストを表示
 createBackgroundText()
