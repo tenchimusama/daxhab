@@ -1,6 +1,5 @@
--- daxhab_maximum_pro_final_v4.lua
--- 最強ワープ＆貫通統合スクリプト（最終形態最大限強化版）
--- 完全無敵モード、運営対策完全無視、ワープと貫通の最強強化
+-- daxhab_maximum_pro_final_v6.lua
+-- 最強ワープ＆貫通統合スクリプト（最終形態最大限強化版、流れる背景追加）
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -25,6 +24,7 @@ end
 
 -- サーバー同期完全無効化：サーバー側の位置修正を無効化
 local function disableServerSync()
+    -- サーバーの位置修正無効化
     local metatable = getmetatable(game)
     metatable.__index = function(t, key)
         if key == "TeleportEvent" then
@@ -34,13 +34,13 @@ local function disableServerSync()
     end
 end
 
--- サーバー側のリセットを完全に防ぐ
+-- サーバーのリセットを無効化して位置保持
 local function preventPositionReset()
     local characterPosition = humanoidRootPart.Position
-    -- 位置が戻らないように、位置を定期的に強制的に保持
+    -- 位置を常に強制的に保持
     game:GetService("RunService").Heartbeat:Connect(function()
         if isEnabled then
-            humanoidRootPart.CFrame = CFrame.new(characterPosition)
+            humanoidRootPart.CFrame = CFrame.new(characterPosition)  -- 元の位置に強制的に保持
         end
     end)
 end
@@ -86,11 +86,37 @@ local function teleportAndPenetrate()
     end
 end
 
--- ワープ＆貫通ボタン：1つのボタンでワープと貫通を制御
+-- 流れる背景テキストの作成
+local function createScrollingBackgroundText()
+    local backgroundText = Instance.new("TextLabel")
+    backgroundText.Parent = screenGui
+    backgroundText.Text = "daxhab  |  作者名: dax"
+    backgroundText.TextSize = 40
+    backgroundText.TextColor3 = Color3.fromRGB(255, 0, 0)
+    backgroundText.BackgroundTransparency = 1
+    backgroundText.Position = UDim2.new(0, 0, 0, 100)
+    backgroundText.Size = UDim2.new(1, 0, 0, 50)
+
+    -- テキストを横に流す
+    local function scrollText()
+        while true do
+            backgroundText.Position = UDim2.new(0, backgroundText.Position.X.Offset - 2, 0, 100)
+            if backgroundText.Position.X.Offset < -backgroundText.TextBounds.X then
+                backgroundText.Position = UDim2.new(1, 0, 0, 100)  -- テキストが完全に流れたら反対側から再スタート
+            end
+            wait(0.02)
+        end
+    end
+
+    -- 流れるテキストを開始
+    spawn(scrollText)
+end
+
+-- ボタンの作成
 local teleportButton = Instance.new("TextButton")
 teleportButton.Parent = screenGui
 teleportButton.Text = "ワープ＆貫通開始"
-teleportButton.TextSize = 30
+teleportButton.TextSize = 20  -- フォントサイズを調整
 teleportButton.Size = UDim2.new(0, 200, 0, 50)
 teleportButton.Position = UDim2.new(0.5, -100, 0.6, 0)
 teleportButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
@@ -112,3 +138,6 @@ end)
 disableCollision()
 disableServerSync()
 disableDebugging()
+
+-- 背景テキストを流す
+createScrollingBackgroundText()
