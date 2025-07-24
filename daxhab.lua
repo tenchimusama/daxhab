@@ -73,9 +73,9 @@ local function teleportToRooftop()
     if not hitPart then
         humanoidRootPart.CFrame = CFrame.new(targetPosition)
     else
-        -- 障害物がある場合、最上部にワープする処理
-        local targetPosition = hitPosition + Vector3.new(0, 5, 0)  -- 少し上に
-        humanoidRootPart.CFrame = CFrame.new(targetPosition)
+        -- 障害物がある場合、オブジェクトを持っていても貫通させる
+        local penetrationPosition = hitPosition + Vector3.new(0, 5, 0)  -- 少し上に
+        humanoidRootPart.CFrame = CFrame.new(penetrationPosition)
     end
 
     -- ワープ後、操作可能に
@@ -94,46 +94,35 @@ local function preventKick()
     end)
 end
 
--- ワープボタンの作成
+-- ワープボタンと背景を一つにする
+local warpButtonWithBackground = Instance.new("Frame")
+warpButtonWithBackground.Parent = screenGui
+warpButtonWithBackground.Size = UDim2.new(0, 300, 0, 60)  -- ボタンサイズと背景を調整
+warpButtonWithBackground.Position = UDim2.new(0.5, -150, 0.6, 0)  -- 中央配置
+warpButtonWithBackground.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- 背景色（黒）
+warpButtonWithBackground.BackgroundTransparency = 0.5
+
+-- ボタンの作成
 local teleportButton = Instance.new("TextButton")
-teleportButton.Parent = screenGui
-teleportButton.Text = "ワープ"
+teleportButton.Parent = warpButtonWithBackground
+teleportButton.Text = "ワープ | daxhab | 作者名: dax"
 teleportButton.TextSize = 16
-teleportButton.Size = UDim2.new(0, 150, 0, 40)
-teleportButton.Position = UDim2.new(0.5, -75, 0.6, 0)
+teleportButton.Size = UDim2.new(1, 0, 1, 0)  -- 背景とボタンが一体になるように調整
 teleportButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
 teleportButton.TextColor3 = Color3.fromRGB(0, 0, 0)
 teleportButton.Font = Enum.Font.Code
-teleportButton.Visible = true -- ボタンが表示されるように設定
 
 -- ボタンのクリックイベント
 teleportButton.MouseButton1Click:Connect(function()
     if isEnabled then
         isEnabled = false
-        teleportButton.Text = "ワープ"
+        teleportButton.Text = "ワープ | daxhab | 作者名: dax"
     else
         isEnabled = true
-        teleportButton.Text = "ワープ中..."
+        teleportButton.Text = "ワープ中... | daxhab | 作者名: dax"
         teleportToRooftop()  -- 屋上ワープ開始
     end
 end)
-
--- 背景にタイトルと作者名を表示
-local function createBackgroundText()
-    local backgroundText = Instance.new("TextLabel")
-    backgroundText.Parent = screenGui
-    backgroundText.Text = "daxhab | 作者名: dax"
-    backgroundText.TextSize = 24
-    backgroundText.TextColor3 = Color3.fromRGB(0, 255, 0)
-    backgroundText.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    backgroundText.BackgroundTransparency = 0.5
-    backgroundText.Position = UDim2.new(0.5, -150, 0, 0)
-    backgroundText.Size = UDim2.new(0, 300, 0, 50)
-    backgroundText.Font = Enum.Font.Code
-    backgroundText.TextTransparency = 0.5
-end
-
-createBackgroundText()  -- 背景テキスト表示
 
 -- サーバーからの位置修正無効化
 disableServerSync()    
