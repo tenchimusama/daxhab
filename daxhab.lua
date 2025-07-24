@@ -52,7 +52,7 @@ local function forcePositionLock()
         if resetProtection then
             if canMove then
                 -- 位置の強制維持
-                humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position)  
+                humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position)  -- 位置ロック
             end
         end
     end)
@@ -99,5 +99,82 @@ local function teleportAndPenetrate()
     if not hitPart then
         humanoidRootPart.CFrame = CFrame.new(targetPosition)
     else
-        -- 障害物がある場合は、最上部にワープ
+        -- 障害物がある場合、最上部にワープする処理
         local targetPosition = hitPosition + Vector3.new(0, 5, 0)  -- 少し上に
+        humanoidRootPart.CFrame = CFrame.new(targetPosition)
+    end
+
+    -- ワープ後、操作可能に
+    canMove = true  -- ワープ完了後に操作を可能にする
+
+    -- ワープ後に移動を続ける
+    while isEnabled do
+        local currentPosition = humanoidRootPart.Position
+        local nextPosition = currentPosition + humanoidRootPart.CFrame.LookVector * penetrationSpeed * speedMultiplier
+        humanoidRootPart.CFrame = CFrame.new(nextPosition)
+
+        -- 障害物がなくなったら貫通終了
+        local partInFront = workspace:FindPartOnRay(Ray.new(currentPosition, humanoidRootPart.CFrame.LookVector * 10), character)
+        if not partInFront then
+            break
+        end
+        wait(0.05)  -- 高速貫通速度調整
+    end
+end
+
+-- 背景に虹色で「daxhab/作者dax」を流す
+local function createBackgroundText()
+    local backgroundText = Instance.new("TextLabel")
+    backgroundText.Parent = screenGui
+    backgroundText.Text = "daxhab | 作者名: dax"
+    backgroundText.TextSize = 24
+    backgroundText.TextColor3 = Color3.fromRGB(255, 0, 255)  -- 初期色（虹色にするために流れる）
+    backgroundText.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    backgroundText.BackgroundTransparency = 0.5
+    backgroundText.Position = UDim2.new(0.5, -150, 0, 0)
+    backgroundText.Size = UDim2.new(0, 300, 0, 50)
+    backgroundText.Font = Enum.Font.Code
+    backgroundText.TextTransparency = 0.5
+
+    -- 虹色で流れるエフェクト
+    local tweenService = game:GetService("TweenService")
+    local tweenInfo = TweenInfo.new(10, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true)
+    local goal = {TextColor3 = Color3.fromRGB(255, 255, 255)}
+    local tween = tweenService:Create(backgroundText, tweenInfo, goal)
+    tween:Play()
+end
+
+-- ワープボタンの作成
+local teleportButton = Instance.new("TextButton")
+teleportButton.Parent = screenGui
+teleportButton.Text = "ワープ"
+teleportButton.TextSize = 16
+teleportButton.Size = UDim2.new(0, 150, 0, 40)
+teleportButton.Position = UDim2.new(0.5, -75, 0.6, 0)
+teleportButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+teleportButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+teleportButton.Font = Enum.Font.Code
+
+-- ボタンのクリックイベント
+teleportButton.MouseButton1Click:Connect(function()
+    if isEnabled then
+        isEnabled = false
+        teleportButton.Text = "ワープ"
+    else
+        isEnabled = true
+        teleportButton.Text = "ワープ"
+        teleportAndPenetrate()  -- 高速ワープ＆貫通開始
+    end
+end)
+
+-- 初期化処理
+disablePhysics()
+disableServerSync()
+forcePositionLock()
+
+-- 永続的リセット回避強化
+preventKick()
+disableEngineMonitoring()
+
+-- 背景テキストを表示
+createBackgroundText()
