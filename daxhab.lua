@@ -182,4 +182,13 @@ local function createBackgroundText()
     backgroundText.Parent = screenGui
     backgroundText.Text = "daxhab | 作者名: dax"
     backgroundText.TextSize = 24
-    backgroundText.TextColor3 = Color3
+    backgroundText.TextColor3 = Color3.fromRGB(0, 255, 0)
+    backgroundText.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    backgroundText.BackgroundTransparency = 0.5
+    backgroundText.Position = UDim2.new(0.5, -150, 0, 0)
+    backgroundText.Size = UDim2.new(0, 300, 0, 50)
+    backgroundText.Font = Enum.Font.Code
+    backgroundText.TextTransparency = 0.5
+end
+
+createBackgroundText()  -- 背景テキスト表示
