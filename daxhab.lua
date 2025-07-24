@@ -1,7 +1,6 @@
--- daxhab.lua (最新プロハッカーレベル)
--- タイトル: daxhab
--- 作者名: dax
--- フォント: ハッカー風タイピング演出（世界にないレベル）
+-- daxhab_maximum_pro.lua
+-- 最強プロハッカースクリプト
+-- ワープと貫通機能を完全に無効化した最強のスクリプト
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -9,22 +8,48 @@ local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player.PlayerGui
 
--- 初期配置: 真ん中に配置（必ず真ん中に配置される）
-character:SetPrimaryPartCFrame(CFrame.new(0, 50, 0)) -- 初期位置を真ん中に設定
-
--- 物理エンジン完全無効化: 物理的な障害物を完全に無視
+-- 物理エンジン無効化：障害物を無視する
 local function disableCollision()
     for _, part in ipairs(character:GetChildren()) do
         if part:IsA("BasePart") then
-            part.CanCollide = false  -- 物理的な障害物を通過
-            part.Anchored = false  -- 物理エンジンによる動きを無効化
+            part.CanCollide = false  -- 障害物を通過
+            part.Anchored = false  -- 物理エンジンを無効化
         end
     end
 end
 
--- 高度なワープ機能（ターゲット指定ワープ）
+-- サーバー同期完全無効化：ワープや貫通後のサーバー側の修正を防ぐ
+local function disableServerSync()
+    local metatable = getmetatable(game)
+    metatable.__index = function(t, key)
+        if key == "TeleportEvent" then
+            return function() end  -- サーバーとの同期を完全に無効化
+        end
+        return rawget(t, key)
+    end
+end
+
+-- デバッグ無効化：ゲームのデバッグ機能を無効化し、スクリプトを検出されにくくする
+local function disableDebugging()
+    local debugMetatable = getmetatable(game)
+    debugMetatable.__newindex = function(t, key, value)
+        if key == "Player" then return end  -- Playerの更新を無効化
+        rawset(t, key, value)
+    end
+end
+
+-- ワープ機能：指定した位置に瞬時にワープ
 local function teleportToTarget(targetPosition)
-    -- エフェクト: ワープ前に光の閃光エフェクト
+    -- ワープ実行
+    humanoidRootPart.CFrame = CFrame.new(targetPosition)
+    
+    -- ワープ後に物理無効化
+    disableCollision()
+    
+    -- サーバー同期無効化
+    disableServerSync()
+    
+    -- ワープ完了後、エフェクト表示
     local warpEffect = Instance.new("Part")
     warpEffect.Shape = Enum.PartType.Ball
     warpEffect.Size = Vector3.new(10, 10, 10)
@@ -32,23 +57,24 @@ local function teleportToTarget(targetPosition)
     warpEffect.Anchored = true
     warpEffect.CanCollide = false
     warpEffect.Material = Enum.Material.Neon
-    warpEffect.Color = Color3.fromRGB(0, 255, 255) -- ワープエフェクト
+    warpEffect.Color = Color3.fromRGB(0, 255, 255)
     warpEffect.Parent = game.Workspace
-
-    -- ワープのアニメーション（瞬間的に位置を変更）
-    humanoidRootPart.CFrame = CFrame.new(targetPosition)
-
-    -- エフェクトが完了したら削除
-    game.Debris:AddItem(warpEffect, 0.5)
-
-    -- 完全に物理無効化
-    disableCollision()
-
-    -- サーバー同期処理（戻されないようにサーバー側に強制的に同期）
-    game.ReplicatedStorage:WaitForChild("TeleportEvent"):FireServer(targetPosition)
+    game.Debris:AddItem(warpEffect, 0.5)  -- 0.5秒後にエフェクト削除
 end
 
--- ワープボタン：ターゲットワープ（マウス位置など指定した位置にワープ）
+-- 貫通機能：障害物を無視して進み続ける
+local function enablePenetration()
+    -- 貫通前に物理エンジン完全無効化
+    disableCollision()
+    
+    -- 貫通を無限に続ける
+    while true do
+        humanoidRootPart.CFrame = humanoidRootPart.CFrame * CFrame.new(0, 0, 10)  -- 前方に貫通
+        wait(0.1)  -- 貫通速度
+    end
+end
+
+-- ワープボタン：クリックした位置にワープ
 local teleportButton = Instance.new("TextButton")
 teleportButton.Parent = screenGui
 teleportButton.Text = "ワープ"
@@ -58,24 +84,12 @@ teleportButton.Position = UDim2.new(0.5, -100, 0.6, 0)
 teleportButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 teleportButton.TextColor3 = Color3.fromRGB(0, 255, 0)
 teleportButton.MouseButton1Click:Connect(function()
-    local targetPosition = Vector3.new(mouse.Hit.p.X, mouse.Hit.p.Y, mouse.Hit.p.Z)  -- マウス位置でワープ
+    -- クリック位置にワープ
+    local targetPosition = player:GetMouse().Hit.p
     teleportToTarget(targetPosition)
 end)
 
--- 貫通機能（障害物を通過し続ける）
-local function enablePenetration()
-    -- 貫通対象の障害物を無視し続ける
-    disableCollision()
-
-    -- 無限貫通：障害物を貫通し続ける
-    while true do
-        -- 貫通中にキャラクターを前進させる
-        humanoidRootPart.CFrame = humanoidRootPart.CFrame * CFrame.new(0, 0, 10) -- 前進貫通
-        wait(0.1)  -- 速い貫通速度
-    end
-end
-
--- 貫通ボタン：貫通を開始する
+-- 貫通ボタン：貫通を開始
 local penetrationButton = Instance.new("TextButton")
 penetrationButton.Parent = screenGui
 penetrationButton.Text = "貫通"
@@ -88,26 +102,7 @@ penetrationButton.MouseButton1Click:Connect(function()
     enablePenetration()  -- 貫通開始
 end)
 
--- 無限貫通を開始
-local infinitePenetrationButton = Instance.new("TextButton")
-infinitePenetrationButton.Parent = screenGui
-infinitePenetrationButton.Text = "無限貫通"
-infinitePenetrationButton.TextSize = 30
-infinitePenetrationButton.Size = UDim2.new(0, 200, 0, 50)
-infinitePenetrationButton.Position = UDim2.new(0.5, -100, 0.8, 0)
-infinitePenetrationButton.BackgroundColor3 = Color3.fromRGB(255, 0, 255)
-infinitePenetrationButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-infinitePenetrationButton.MouseButton1Click:Connect(function()
-    enablePenetration()  -- 貫通を続ける
-end)
-
--- サーバー同期強化: ワープ後、サーバー側の位置を強制的に反映
-local function secureSyncWithServer()
-    game.ReplicatedStorage.TeleportEvent.OnClientEvent:Connect(function(newPosition)
-        humanoidRootPart.CFrame = CFrame.new(newPosition)  -- サーバーからの位置情報を強制的に反映
-    end)
-end
-
--- 初期化: キャラクターのコリジョン無効化とサーバー同期強化
+-- 初期化処理：デバッグ無効化、物理エンジン無効化、サーバー同期無効化
 disableCollision()
-secureSyncWithServer()
+disableServerSync()
+disableDebugging()
