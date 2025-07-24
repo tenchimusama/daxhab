@@ -1,4 +1,4 @@
--- 最強の屋上との空間入れ替えスクリプト（修正版）
+-- 最強の屋上との空間入れ替えスクリプト（最適化版）
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -18,6 +18,7 @@ local isSwapping = false  -- ワープ中かどうかを管理するフラグ
 
 -- セキュリティ対策：不正な位置検出
 local function performSecurityChecks(targetPosition)
+    -- 高すぎる位置には飛ばさない
     if targetPosition.Y < 0 or targetPosition.Y > maxPositionY then
         warn("不正なターゲット位置です。処理を停止します。")
         return false
@@ -25,20 +26,12 @@ local function performSecurityChecks(targetPosition)
     return true
 end
 
--- ワープ位置ランダム化（周囲の位置で安全な位置をランダムに選ぶ）
-local function getRandomizedPosition(basePosition)
-    local randomX = basePosition.X + math.random(-5, 5)
-    local randomY = basePosition.Y + math.random(-2, 2)
-    local randomZ = basePosition.Z + math.random(-5, 5)
-    return Vector3.new(randomX, randomY, randomZ)
-end
-
 -- ワープ遅延ランダム化
 local function randomDelay()
     wait(math.random(0.1, 0.5))  -- ワープの前に0.1~0.5秒のランダム遅延
 end
 
--- ワープ試行
+-- ワープ処理
 local function attemptWarp(targetPosition)
     local retries = 0
     local success = false
@@ -52,8 +45,7 @@ local function attemptWarp(targetPosition)
             randomDelay()
 
             -- 空間の入れ替え処理（屋上にワープ）
-            local randomizedPosition = getRandomizedPosition(targetPosition)
-            humanoidRootPart.CFrame = CFrame.new(randomizedPosition)  -- プレイヤーを屋上に移動
+            humanoidRootPart.CFrame = CFrame.new(targetPosition)  -- プレイヤーを屋上に移動
             success = true
         end
         wait(0.2)  -- 少し待って再試行
@@ -70,9 +62,6 @@ local function swapSpaces()
     end
 
     isSwapping = true  -- ワープ処理開始
-
-    -- プレイヤーの位置と屋上の位置を交換
-    local playerPosition = humanoidRootPart.Position
 
     -- 屋上の位置が有効かどうかチェック
     if not performSecurityChecks(roofPosition) then
