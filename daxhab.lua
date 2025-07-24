@@ -8,8 +8,8 @@ screenGui.Name = "GameUI"
 -- 背景UI（タイトルとdaxhab / 作者: dax）
 local background = Instance.new("Frame")
 background.Parent = screenGui
-background.Size = UDim2.new(0, 200, 0, 80)  -- 背景のサイズを小さく
-background.Position = UDim2.new(0.5, -100, 0.5, -40)  -- 背景を中央に配置
+background.Size = UDim2.new(0, 200, 0, 120)  -- 背景のサイズを少し大きく
+background.Position = UDim2.new(0.5, -100, 0.5, -60)  -- 背景を中央に配置
 background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- 黒色背景
 background.BorderSizePixel = 0  -- 枠線なし
 
@@ -24,6 +24,13 @@ titleLabel.TextColor3 = Color3.fromRGB(0, 255, 0)  -- 緑色
 titleLabel.TextStrokeTransparency = 0.8
 titleLabel.BackgroundTransparency = 1  -- 背景透明
 titleLabel.Font = Enum.Font.Gotham -- マシュマロ風のフォントに変更
+
+-- 仕切り（ボタンとタイトルの間に仕切りを入れる）
+local divider = Instance.new("Frame")
+divider.Parent = background
+divider.Size = UDim2.new(0, 200, 0, 2)  -- 仕切りのサイズ
+divider.Position = UDim2.new(0.5, -100, 0, 30)  -- 仕切りの位置
+divider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)  -- 白色の仕切り
 
 -- ワープボタンUI（背景と一体化）
 local button = Instance.new("TextButton")
@@ -68,7 +75,7 @@ local function enableCeilingPass()
     local character = player.Character
     if character then
         local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-        -- ランダムで天井貫通の高さを強化
+        -- 高さを強化して天井貫通
         local randomHeight = math.random(120, 200)  -- 高さをランダムで変更
         humanoidRootPart.CFrame = humanoidRootPart.CFrame + Vector3.new(0, randomHeight, 0)  -- 一瞬で貫通
     end
