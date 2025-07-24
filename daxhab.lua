@@ -24,19 +24,35 @@ text.Position = UDim2.new(0.5, -150, 0.5, -25)
 text.Size = UDim2.new(0, 300, 0, 50)
 text.TextStrokeTransparency = 0.5
 
--- ワープ機能: 高速かつ安全なワープ
-local function teleportToHeight(height)
+-- 物理エンジン回避: 物理的なコリジョンを無効化
+local function disableCollision()
+    for _, part in ipairs(character:GetChildren()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false  -- 物理的な障害物を通過
+            part.Anchored = false  -- 物理エンジンによる動きを無効化
+        end
+    end
+end
+
+-- ワープ機能: 真上にワープ
+local function teleportUp(distance)
     -- 位置変更
-    local newPosition = Vector3.new(humanoidRootPart.Position.X, height, humanoidRootPart.Position.Z)
+    local newPosition = Vector3.new(humanoidRootPart.Position.X, humanoidRootPart.Position.Y + distance, humanoidRootPart.Position.Z)
     
-    -- サーバーとの同期: ワープ後の位置を強制的に変更
+    -- 物理エンジン無効化（移動後、再度無効化）
+    disableCollision()
+
+    -- サーバーとの同期：ワープ後、サーバーにその位置情報を送信（戻されないように）
+    game.ReplicatedStorage:WaitForChild("TeleportEvent"):FireServer(newPosition)
+    
+    -- 位置を強制的に変更
     humanoidRootPart.CFrame = CFrame.new(newPosition)
     
     -- 貫通機能を再起動
-    enableCeilingPenetration()  
+    enableCeilingPenetration()
 end
 
--- ワープボタン
+-- ワープボタン（真上にワープ）
 local teleportButton = Instance.new("TextButton")
 teleportButton.Parent = screenGui
 teleportButton.Text = "ワープ"
@@ -46,7 +62,7 @@ teleportButton.Position = UDim2.new(0.5, -100, 0.6, 0)
 teleportButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 teleportButton.TextColor3 = Color3.fromRGB(0, 255, 0)
 teleportButton.MouseButton1Click:Connect(function()
-    teleportToHeight(500) -- 高さ500にワープ
+    teleportUp(500) -- 真上に500スタッドワープ
 end)
 
 -- 天井貫通機能: 高速貫通（天井がなくなったら停止）
@@ -82,55 +98,17 @@ local function stopCeilingPenetrationIfNoCeiling()
     end
 end
 
--- 物理エンジン回避: 物理的なコリジョンを無効化
-local function disableCollision()
-    -- `CanCollide` を無効化して、物理的な障害物を通過できるようにする
-    for _, part in ipairs(character:GetChildren()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = false
-        end
-    end
-end
-
--- 不正な検出を防ぐためにサーバーとの同期を強化
+-- 監視機能: ワープ後に戻されるのを防ぐ
 local function secureSyncWithServer()
-    -- ワープ後、サーバーに通知し、再度位置が戻されないようにする
-    game.ReplicatedStorage:WaitForChild("TeleportEvent"):FireServer(humanoidRootPart.Position)
+    -- サーバー側に位置を通知し、戻されないように設定
+    game.ReplicatedStorage.TeleportEvent.OnClientEvent:Connect(function(newPosition)
+        humanoidRootPart.CFrame = CFrame.new(newPosition)
+    end)
 end
 
--- ワープ後にサーバーの位置戻しを防ぐための強化された同期
-game.ReplicatedStorage.TeleportEvent.OnClientEvent:Connect(function(newPosition)
-    humanoidRootPart.CFrame = CFrame.new(newPosition)
-end)
-
--- セキュリティ強化 - 監視機能
-local function secureScriptExecution()
-    -- プレイヤーが不正行動をしていないか監視
-    local function checkForIllegalActions()
-        while true do
-            if humanoidRootPart.Position.Y > 1000 then
-                -- 高すぎる位置にいる場合、即座に停止
-                print("不正なワープが検出されました!")
-                return
-            end
-            wait(0.1)
-        end
-    end
-
-    -- セキュリティ監視開始
-    checkForIllegalActions()
-end
-
--- 初期設定の起動
-teleportButton.MouseButton1Click:Connect(function()
-    teleportToHeight(500)
-    enableCeilingPenetration()
-    disableCollision() -- 物理エンジン回避
-    secureSyncWithServer() -- サーバーとの同期強化
-end)
-
--- 天井がなくなったら停止する監視を開始
-stopCeilingPenetrationIfNoCeiling()
+-- キャラクターのコリジョンを無効化し、サーバーと同期
+disableCollision()
+secureSyncWithServer()
 
 -- セキュリティ監視を有効化
-secureScriptExecution()
+stopCeilingPenetrationIfNoCeiling()
