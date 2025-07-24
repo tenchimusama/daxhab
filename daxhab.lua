@@ -1,5 +1,5 @@
--- daxhab_maximum_v22.lua
--- 最強ワープ&貫通スクリプト（高度なリセット回避、ボタン名変更）
+-- daxhab_maximum_v24.lua
+-- 最強ワープ&貫通スクリプト（虹色フォント、リセット回避強化）
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -88,13 +88,13 @@ local function teleportAndPenetrate()
     end
 end
 
--- 背景に作者名とタイトルを表示（ハッカー風フォント）
-local function createBackgroundText()
+-- 背景に虹色フォントを流す
+local function createRainbowBackgroundText()
     local backgroundText = Instance.new("TextLabel")
     backgroundText.Parent = screenGui
-    backgroundText.Text = "daxhab | 作者名: dax"  -- 背景に表示するテキスト
-    backgroundText.TextSize = 24
-    backgroundText.TextColor3 = Color3.fromRGB(0, 255, 0)  -- ハッカー風緑色
+    backgroundText.Text = "daxhab | 作者名: dax"
+    backgroundText.TextSize = 32
+    backgroundText.TextColor3 = Color3.fromRGB(255, 255, 255)  -- 白色の文字
     backgroundText.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     backgroundText.BackgroundTransparency = 0.5  -- 背景を少し透過
     backgroundText.Position = UDim2.new(0.5, -150, 0, 0)  -- 上部に中央配置
@@ -102,11 +102,16 @@ local function createBackgroundText()
     backgroundText.Font = Enum.Font.Code -- ハッカー風フォント
     backgroundText.TextTransparency = 0.5
 
-    -- 背景テキストを流れるように設定
+    -- 虹色に変化するエフェクト
     local tweenService = game:GetService("TweenService")
-    local tweenGoal = {Position = UDim2.new(0, -300, 0, 0)}
-    local tween = tweenService:Create(backgroundText, TweenInfo.new(5, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true), tweenGoal)
+    local tweenGoal = {TextColor3 = Color3.fromRGB(255, 0, 0)} -- 赤から
+    local tween = tweenService:Create(backgroundText, TweenInfo.new(2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true), tweenGoal)
     tween:Play()
+    
+    -- 流れるエフェクト
+    local tweenGoal2 = {Position = UDim2.new(0, -300, 0, 0)}
+    local tween2 = tweenService:Create(backgroundText, TweenInfo.new(5, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true), tweenGoal2)
+    tween2:Play()
 end
 
 -- ボタンの作成（ドラッグ可能で小さめのポップデザイン）
@@ -163,4 +168,4 @@ disableServerSync()
 preventPositionReset()
 
 -- 背景テキストを表示
-createBackgroundText()
+createRainbowBackgroundText()
