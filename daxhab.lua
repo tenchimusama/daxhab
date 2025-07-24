@@ -12,6 +12,7 @@ local penetrationSpeed = 10  -- 高速貫通
 local speedMultiplier = 3  -- 高速ワープの加速係数
 local maxWarpDistance = 150  -- 最大ワープ距離制限
 local resetProtection = true  -- リセット回避有効
+local canMove = true  -- 操作可能状態
 
 -- 物理エンジンの無効化（オブジェクト貫通）
 local function disablePhysics()
@@ -45,11 +46,14 @@ local function disableServerSync()
     end)
 end
 
--- 完全位置ロック（リセット回避）
+-- 完全位置ロック（リセット回避）→ 操作可能に修正
 local function forcePositionLock()
     game:GetService("RunService").Heartbeat:Connect(function()
         if resetProtection then
-            humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position)  -- 自分の位置を強制維持
+            if canMove then
+                -- 位置の強制維持
+                humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position)  
+            end
         end
     end)
 end
@@ -80,100 +84,20 @@ end
 
 -- 高速ワープ＆貫通処理
 local function teleportAndPenetrate()
+    local targetPosition = humanoidRootPart.Position + Vector3.new(0, warpHeight, 0)
+
+    -- 最大ワープ距離制限を超えないように調整
+    if (targetPosition - humanoidRootPart.Position).magnitude > maxWarpDistance then
+        targetPosition = humanoidRootPart.Position + (targetPosition - humanoidRootPart.Position).unit * maxWarpDistance
+    end
+
     -- 上に障害物がないかチェック
     local ray = Ray.new(humanoidRootPart.Position, Vector3.new(0, 1000, 0))
     local hitPart, hitPosition = workspace:FindPartOnRay(ray, character)
-    
+
     -- 障害物がなければワープ
     if not hitPart then
-        local targetPosition = humanoidRootPart.Position + Vector3.new(0, warpHeight, 0)
-        -- 最大ワープ距離制限を超えないように調整
-        if (targetPosition - humanoidRootPart.Position).magnitude > maxWarpDistance then
-            targetPosition = humanoidRootPart.Position + (targetPosition - humanoidRootPart.Position).unit * maxWarpDistance
-        end
         humanoidRootPart.CFrame = CFrame.new(targetPosition)
     else
         -- 障害物がある場合は、最上部にワープ
-        local targetPosition = hitPosition + Vector3.new(0, 5, 0)  -- 少し上にワープ
-        humanoidRootPart.CFrame = CFrame.new(targetPosition)
-    end
-
-    -- 物理エンジン無効化
-    disablePhysics()
-
-    -- サーバー同期無効化
-    disableServerSync()
-
-    -- 位置ロック強化
-    forcePositionLock()
-
-    -- 高速貫通処理
-    while isEnabled do
-        local targetPosition = humanoidRootPart.Position + humanoidRootPart.CFrame.LookVector * penetrationSpeed * speedMultiplier
-        humanoidRootPart.CFrame = CFrame.new(targetPosition)
-
-        -- 障害物がなくなったら貫通終了
-        local partInFront = workspace:FindPartOnRay(Ray.new(humanoidRootPart.Position, humanoidRootPart.CFrame.LookVector * 10), character)
-        if not partInFront then
-            break
-        end
-        wait(0.05)  -- 高速貫通速度調整
-    end
-end
-
--- 背景に虹色で「daxhab/作者dax」を流す
-local function createBackgroundText()
-    local backgroundText = Instance.new("TextLabel")
-    backgroundText.Parent = screenGui
-    backgroundText.Text = "daxhab | 作者名: dax"
-    backgroundText.TextSize = 24
-    backgroundText.TextColor3 = Color3.fromRGB(255, 0, 255)  -- 初期色（虹色にするために流れる）
-    backgroundText.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    backgroundText.BackgroundTransparency = 0.5
-    backgroundText.Position = UDim2.new(0.5, -150, 0, 0)
-    backgroundText.Size = UDim2.new(0, 300, 0, 50)
-    backgroundText.Font = Enum.Font.Code
-    backgroundText.TextTransparency = 0.5
-
-    -- 虹色で流れるエフェクト
-    local tweenService = game:GetService("TweenService")
-    local tweenInfo = TweenInfo.new(10, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true)
-    local goal = {TextColor3 = Color3.fromRGB(255, 255, 255)}
-    local tween = tweenService:Create(backgroundText, tweenInfo, goal)
-    tween:Play()
-end
-
--- ワープボタンの作成
-local teleportButton = Instance.new("TextButton")
-teleportButton.Parent = screenGui
-teleportButton.Text = "ワープ"
-teleportButton.TextSize = 16
-teleportButton.Size = UDim2.new(0, 150, 0, 40)
-teleportButton.Position = UDim2.new(0.5, -75, 0.6, 0)
-teleportButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-teleportButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-teleportButton.Font = Enum.Font.Code
-
--- ボタンのクリックイベント
-teleportButton.MouseButton1Click:Connect(function()
-    if isEnabled then
-        isEnabled = false
-        teleportButton.Text = "ワープ"
-    else
-        isEnabled = true
-        teleportButton.Text = "ワープ"
-        teleportAndPenetrate()  -- 高速ワープ＆貫通開始
-    end
-end)
-
--- 初期化処理
-disablePhysics()
-disableServerSync()
-forcePositionLock()
-
--- 永続的リセット回避強化
-preventKick()
-disableEngineMonitoring()
-
--- 背景テキストを表示
-createBackgroundText()
+        local targetPosition = hitPosition + Vector3.new(0, 5, 0)  -- 少し上に
