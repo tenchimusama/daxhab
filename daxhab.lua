@@ -1,4 +1,17 @@
--- プレイヤーの物理エンジン無効化（衝突無効化と完全固定）
+-- プレイヤーとキャラクターの参照
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player.PlayerGui
+
+-- スクリプト制御変数
+local isEnabled = false
+local warpHeight = 200  -- 高速ワープ距離
+local penetrationSpeed = 50  -- 高速貫通
+local speedMultiplier = 5  -- 高速ワープの加速係数
+
+-- 物理エンジンの無効化（オブジェクト貫通）
 local function disablePhysics()
     for _, part in ipairs(character:GetChildren()) do
         if part:IsA("BasePart") then
@@ -8,9 +21,8 @@ local function disablePhysics()
     end
 end
 
--- サーバーからの位置修正要求、テレポート要求完全無効化
+-- サーバーからの位置修正、テレポート要求完全無効化
 local function disableServerSync()
-    -- metatableを変更して、サーバーからの補正を完全無効化
     local metatable = getmetatable(game)
     metatable.__index = function(t, key)
         if key == "TeleportEvent" then
@@ -19,40 +31,22 @@ local function disableServerSync()
         return rawget(t, key)
     end
 
-    -- サーバーからの位置修正イベントを完全に無効化
+    -- サーバーからの位置修正イベントを無効化
     game:GetService("NetworkClient").OnClientPositionChanged:Connect(function() end)
-
-    -- サーバーからの位置修正要求を完全に無効化するためのイベントリスナーを追加
-    game:GetService("NetworkClient").OnClientEvent:Connect(function(eventName)
-        if eventName == "Teleport" then
-            return nil  -- サーバーからのテレポート要求を無視
-        end
-    end)
 end
 
--- 強化した位置ロック
+-- 完全位置ロック（リセット回避）
 local function forcePositionLock()
     game:GetService("RunService").Heartbeat:Connect(function()
         if isEnabled then
-            -- プレイヤーの位置を強制的に維持（運営側からの補正を完全無視）
-            humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position)  -- 自分の位置を維持
+            humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position)  -- プレイヤーの位置維持
         end
     end)
 end
 
--- 完全リセット回避のための強力なロック
-local function preventTeleportReset()
-    game:GetService("RunService").Heartbeat:Connect(function()
-        if isEnabled then
-            -- 毎フレームで位置を確認し、サーバーの補正を完全に回避
-            humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position)  -- 自分の位置を強制維持
-        end
-    end)
-end
-
--- ワープ＆貫通統合：強化バージョン
+-- 高速ワープ＆貫通処理
 local function teleportAndPenetrate()
-    -- ワープ位置設定（50 studs上にワープ）
+    -- 高速ワープ位置設定（200 studs上にワープ）
     local targetPosition = humanoidRootPart.Position + Vector3.new(0, warpHeight, 0)
     humanoidRootPart.CFrame = CFrame.new(targetPosition)
 
@@ -65,12 +59,9 @@ local function teleportAndPenetrate()
     -- 位置ロック強化
     forcePositionLock()
 
-    -- リセット回避強化
-    preventTeleportReset()
-
-    -- 貫通処理（障害物を通過）
+    -- 高速貫通処理
     while isEnabled do
-        local targetPosition = humanoidRootPart.Position + humanoidRootPart.CFrame.LookVector * penetrationSpeed
+        local targetPosition = humanoidRootPart.Position + humanoidRootPart.CFrame.LookVector * penetrationSpeed * speedMultiplier
         humanoidRootPart.CFrame = CFrame.new(targetPosition)
 
         -- 障害物がなくなったら貫通終了
@@ -78,23 +69,30 @@ local function teleportAndPenetrate()
         if not partInFront then
             break
         end
-        wait(0.1) -- 貫通速度調整
+        wait(0.05)  -- 高速貫通速度調整
     end
 end
 
--- 背景にタイトルと作者名を表示
+-- 背景に虹色で「daxhab/作者dax」を流す
 local function createBackgroundText()
     local backgroundText = Instance.new("TextLabel")
     backgroundText.Parent = screenGui
     backgroundText.Text = "daxhab | 作者名: dax"
     backgroundText.TextSize = 24
-    backgroundText.TextColor3 = Color3.fromRGB(0, 255, 0)
+    backgroundText.TextColor3 = Color3.fromRGB(255, 0, 255)  -- 初期色（虹色にするために流れる）
     backgroundText.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     backgroundText.BackgroundTransparency = 0.5
     backgroundText.Position = UDim2.new(0.5, -150, 0, 0)
     backgroundText.Size = UDim2.new(0, 300, 0, 50)
     backgroundText.Font = Enum.Font.Code
     backgroundText.TextTransparency = 0.5
+
+    -- 虹色で流れるエフェクト
+    local tweenService = game:GetService("TweenService")
+    local tweenInfo = TweenInfo.new(10, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true)
+    local goal = {TextColor3 = Color3.fromRGB(255, 255, 255)}
+    local tween = tweenService:Create(backgroundText, tweenInfo, goal)
+    tween:Play()
 end
 
 -- ワープボタンの作成
@@ -116,7 +114,7 @@ teleportButton.MouseButton1Click:Connect(function()
     else
         isEnabled = true
         teleportButton.Text = "ワープ"
-        teleportAndPenetrate()  -- ワープ＆貫通開始
+        teleportAndPenetrate()  -- 高速ワープ＆貫通開始
     end
 end)
 
