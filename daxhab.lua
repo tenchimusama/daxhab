@@ -40,13 +40,13 @@ end
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player.PlayerGui
 
--- カラフルで可愛いボタンの作成
+-- ボタンの背景とボタン作成
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, player.PlayerGui.AbsoluteSize.X / 8, 0, player.PlayerGui.AbsoluteSize.Y / 8)
 button.Position = UDim2.new(0.5, -player.PlayerGui.AbsoluteSize.X / 16, 0.5, -player.PlayerGui.AbsoluteSize.Y / 16)
 button.Text = "daxhab/作者dax"  -- ボタンにテキストを表示
-button.TextColor3 = Color3.fromRGB(0, 255, 0)  -- ハッカーカラー（緑）
-button.TextSize = 20  -- テキストのサイズ
+button.TextColor3 = Color3.fromRGB(255, 255, 255)  -- テキスト色（白）
+button.TextSize = 24  -- テキストのサイズ
 button.TextStrokeTransparency = 0.5  -- テキストにストロークを追加
 button.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)  -- ストローク色を黒に設定
 button.Font = Enum.Font.Code -- ハッカーフォントに設定
@@ -54,9 +54,9 @@ button.Font = Enum.Font.Code -- ハッカーフォントに設定
 -- ボタンの背景にグラデーションを追加
 local gradient = Instance.new("UIGradient")
 gradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 100, 200)),  -- ピンク
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 100)),  -- 黄色
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 255, 255))   -- 水色
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 0)),  -- 緑
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 0, 255)),  -- 青
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))   -- 赤
 })
 gradient.Parent = button
 
