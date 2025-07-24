@@ -27,7 +27,8 @@ end
 
 -- リセット後に停止または補正する処理
 local function stopIfReset()
-    if humanoidRootPart.Position.Y < 3 then  -- Y座標が低い＝リセット状態（条件を緩和）
+    -- Y座標が低い＝リセット状態（条件を緩和）
+    if humanoidRootPart.Position.Y < 3 then  
         print("リセット状態が検出されました。位置を補正します。")
         -- リセットされた場合、少しだけ位置を補正
         humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position + Vector3.new(0, 5, 0))  -- Y座標を少し上に補正
@@ -39,17 +40,20 @@ end
 -- UIにボタンを作成
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player.PlayerGui
+screenGui.IgnoreGuiInset = true -- ゲーム画面の端を無視して全体に表示
 
 -- ボタンの背景とボタン作成
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, player.PlayerGui.AbsoluteSize.X / 8, 0, player.PlayerGui.AbsoluteSize.Y / 8)
-button.Position = UDim2.new(0.5, -player.PlayerGui.AbsoluteSize.X / 16, 0.5, -player.PlayerGui.AbsoluteSize.Y / 16)
+button.Size = UDim2.new(0, 250, 0, 100)
+button.Position = UDim2.new(0.5, -125, 0.5, -50)
 button.Text = "daxhab/作者dax"  -- ボタンにテキストを表示
 button.TextColor3 = Color3.fromRGB(255, 255, 255)  -- テキスト色（白）
 button.TextSize = 24  -- テキストのサイズ
 button.TextStrokeTransparency = 0.5  -- テキストにストロークを追加
 button.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)  -- ストローク色を黒に設定
 button.Font = Enum.Font.Code -- ハッカーフォントに設定
+button.BackgroundTransparency = 0.5
+button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- 背景色（緑）
 
 -- ボタンの背景にグラデーションを追加
 local gradient = Instance.new("UIGradient")
@@ -98,11 +102,9 @@ button.InputEnded:Connect(function(input)
     end
 end)
 
--- 定期的にリセットを補正
+-- 高度なランダム化と微調整で、監視ツール対策を強化
 while true do
-    if stopIfReset() then
-        -- 再度位置を補正
-        humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position + Vector3.new(0, 5, 0))
-    end
-    wait(1)  -- 1秒ごとにチェック
+    -- 微調整で不自然な移動を防ぐ
+    humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position + Vector3.new(math.random(-0.1, 0.1), 0, math.random(-0.1, 0.1)))
+    wait(0.5)  -- ランダム待機時間で不規則な動き
 end
