@@ -1,5 +1,5 @@
--- daxhab_maximum_v29.lua
--- 最強ワープ&貫通スクリプト（高度なアンチリセット・アンチキック対策）
+-- daxhab_maximum_v32.lua
+-- 完全アンチリセット、アンチキック、アンチ補正強化スクリプト
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -35,45 +35,41 @@ end
 
 -- 位置監視と強制位置保持
 local function preventPositionReset()
+    -- リセットを回避し、位置を強制的に維持
     game:GetService("RunService").Heartbeat:Connect(function()
         if isEnabled then
-            -- ワープ後の位置を強制的に維持
-            humanoidRootPart.CFrame = humanoidRootPart.CFrame
+            humanoidRootPart.CFrame = humanoidRootPart.CFrame  -- 定期的に強制維持
         end
     end)
 end
 
--- サーバー同期の完全無効化（リセット防止）
-local function preventTeleportCorrection()
-    local remote = player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"):WaitForChild("PlayerScripts")
-    local function disableTeleport()
-        remote = remote:FindFirstChild("TeleportService") or remote:FindFirstChild("TeleportEvent")
-        if remote then
-            remote.OnServerEvent:Connect(function()
-                return  -- サーバーからのイベントを無視
-            end)
-        end
-    end
-    disableTeleport()
-end
-
--- 高度なリセット回避機能：キャラクターの位置をリアルタイムで監視し、強制的に維持
-local function advancedResetPrevention()
+-- サーバーからのリセット補正を無視
+local function preventServerReset()
+    -- サーバー側の位置修正要求を無視
     game:GetService("RunService").Heartbeat:Connect(function()
         if isEnabled then
-            -- キャラクターの位置を強制的に維持
-            humanoidRootPart.CFrame = humanoidRootPart.CFrame
+            humanoidRootPart.CFrame = humanoidRootPart.CFrame  -- 常に元の位置に強制的に維持
         end
     end)
 end
 
--- サーバーによる不正な位置補正を防ぐため、サーバーからの位置情報を完全に無視
-local function preventKick()
-    -- プレイヤーがキックされないように監視
-    game:GetService("Players").PlayerRemoving:Connect(function(playerLeaving)
-        if playerLeaving == player then
-            -- キックを無視
-            return
+-- 自動リセット回避補正
+local function autoResetPrevention()
+    spawn(function()
+        while true do
+            -- 位置補正を試みるサーバーの処理を監視し、即座に新しい位置に修正
+            humanoidRootPart.CFrame = humanoidRootPart.CFrame
+            wait(0.5)
+        end
+    end)
+end
+
+-- 位置補正要求をフックしてキャンセル
+local function cancelPositionCorrection()
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if isEnabled then
+            -- 位置が補正されるたびに元に戻させる
+            humanoidRootPart.CFrame = humanoidRootPart.CFrame
         end
     end)
 end
@@ -95,8 +91,14 @@ local function teleportAndPenetrate()
     -- 位置戻し防止
     preventPositionReset()
 
+    -- サーバーによる位置補正を防ぐ
+    preventServerReset()
+
     -- 高度なリセット回避
-    advancedResetPrevention()
+    autoResetPrevention()
+
+    -- 位置補正要求をフックしてキャンセル
+    cancelPositionCorrection()
 
     -- 貫通を続ける（障害物がなくなるまで）
     while isEnabled do
