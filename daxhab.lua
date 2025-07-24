@@ -5,10 +5,10 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player.PlayerGui
 screenGui.Name = "GameUI"
 
--- 背景UI（サイズを1/5に縮小）
+-- 背景UI（1/5に縮小）
 local background = Instance.new("Frame")
 background.Parent = screenGui
-background.Size = UDim2.new(0, 120, 0, 60)  -- 横長の長方形
+background.Size = UDim2.new(0, 120, 0, 60)  -- 横長
 background.Position = UDim2.new(0.5, -60, 0.5, -30)  -- 背景を中央に配置
 background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- 背景色
 background.BorderSizePixel = 0  -- 枠線なし
@@ -32,42 +32,30 @@ divider.Size = UDim2.new(0, 120, 0, 1)
 divider.Position = UDim2.new(0, 0, 0, 15)
 divider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 
--- ワープボタン作成
-local buttonWarp = Instance.new("TextButton")
-buttonWarp.Parent = background
-buttonWarp.Size = UDim2.new(0, 100, 0, 20)  -- サイズを1/5に縮小
-buttonWarp.Position = UDim2.new(0.5, -50, 0, 20)
-buttonWarp.Text = "ワープ"
-buttonWarp.TextSize = 8
-buttonWarp.BackgroundColor3 = Color3.fromRGB(255, 0, 0)  -- 初期色：赤
-buttonWarp.TextColor3 = Color3.fromRGB(255, 255, 255)
-buttonWarp.BorderSizePixel = 0
-buttonWarp.Font = Enum.Font.SourceSansBold
-
--- リセット回避ボタン作成
-local buttonResetAvoid = Instance.new("TextButton")
-buttonResetAvoid.Parent = background
-buttonResetAvoid.Size = UDim2.new(0, 100, 0, 20)
-buttonResetAvoid.Position = UDim2.new(0.5, -50, 0, 50)
-buttonResetAvoid.Text = "リセット回避: 🔴"
-buttonResetAvoid.TextSize = 8
-buttonResetAvoid.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-buttonResetAvoid.TextColor3 = Color3.fromRGB(255, 255, 255)
-buttonResetAvoid.BorderSizePixel = 0
-buttonResetAvoid.Font = Enum.Font.SourceSansBold
+-- ワープ＆回避ボタン作成
+local buttonWarpReset = Instance.new("TextButton")
+buttonWarpReset.Parent = background
+buttonWarpReset.Size = UDim2.new(0, 100, 0, 20)  -- サイズを1/5に縮小
+buttonWarpReset.Position = UDim2.new(0.5, -50, 0, 20)
+buttonWarpReset.Text = "ワープ＆回避"
+buttonWarpReset.TextSize = 8
+buttonWarpReset.BackgroundColor3 = Color3.fromRGB(255, 0, 0)  -- 初期色：赤
+buttonWarpReset.TextColor3 = Color3.fromRGB(255, 255, 255)
+buttonWarpReset.BorderSizePixel = 0
+buttonWarpReset.Font = Enum.Font.SourceSansBold
 
 -- ボタンの状態を更新する関数
 local function updateButtonState(button, isActive)
     if isActive then
         button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- 緑色
-        button.Text = button.Text:sub(1, -2) .. "🟢"  -- 実行中
+        button.Text = "実行中 🟢"
     else
         button.BackgroundColor3 = Color3.fromRGB(255, 0, 0)  -- 赤色
-        button.Text = button.Text:sub(1, -2) .. "🔴"  -- 非実行
+        button.Text = "ワープ＆回避 🔴"
     end
 end
 
--- ワープ機能
+-- ワープ機能（真上にワープ）
 local function teleportPlayer()
     local successChance = math.random() < 0.999  -- 99.9%の確率で成功
     if successChance then
@@ -77,39 +65,48 @@ local function teleportPlayer()
         
         -- オブジェクト貫通してワープ
         character:SetPrimaryPartCFrame(CFrame.new(targetPosition))
-        updateButtonState(buttonWarp, true)
+        updateButtonState(buttonWarpReset, true)  -- ボタンを実行中に更新
     else
-        updateButtonState(buttonWarp, false)
+        updateButtonState(buttonWarpReset, false)  -- 失敗した場合ボタン状態を更新
     end
 end
 
-buttonWarp.MouseButton1Click:Connect(function()
-    teleportPlayer()  -- ワープ実行
-end)
-
--- リセット回避のオンオフ切り替え
-local resetAvoidEnabled = false
-local function toggleResetAvoidance()
-    resetAvoidEnabled = not resetAvoidEnabled
-    updateButtonState(buttonResetAvoid, resetAvoidEnabled)
-end
-
-buttonResetAvoid.MouseButton1Click:Connect(function()
-    toggleResetAvoidance()  -- リセット回避のオンオフ切り替え
-end)
-
--- 強化されたリセット回避（プレイヤーがリセットされる前に位置補正）
-local function enhancedResetAvoid()
-    local resetPosition = humanoidRootPart.Position
+-- リセット回避（ワープ後、リセットされないように位置補正）
+local function resetAvoidance()
+    local lastPosition = humanoidRootPart.Position
     game:GetService("RunService").Heartbeat:Connect(function()
-        if (humanoidRootPart.Position - resetPosition).Magnitude < 0.1 then
+        if (humanoidRootPart.Position - lastPosition).Magnitude < 0.1 then
             local newPosition = humanoidRootPart.Position + Vector3.new(math.random(-30, 30), 0, math.random(-30, 30))
             humanoidRootPart.CFrame = CFrame.new(newPosition)
         end
+        lastPosition = humanoidRootPart.Position
     end)
 end
 
--- サーバー監視回避（監視範囲から外れた位置に補正）
+-- 高速ワープ（リセットされないように繰り返しワープ）
+local function highSpeedWarp()
+    local warpCount = 0
+    while warpCount < 10 do
+        teleportPlayer()  -- ワープ実行
+        warpCount = warpCount + 1
+        wait(0.1)  -- 高速でワープする
+    end
+end
+
+-- 通常回避（常に回避を行う）
+local function normalAvoidance()
+    -- 高速ワープを利用して、リセットのタイミングを回避
+    highSpeedWarp()
+end
+
+-- ボタンのクリック処理（ワープ＆回避同時実行）
+buttonWarpReset.MouseButton1Click:Connect(function()
+    teleportPlayer()  -- ワープ実行
+    resetAvoidance()  -- リセット回避を同時に実行
+    normalAvoidance()  -- 常に回避を行う
+end)
+
+-- ゲーム内のサーバー監視回避（監視範囲から外れた位置に補正）
 local function serverDetectionAvoid()
     local currentPos = humanoidRootPart.Position
     local detectedArea = Vector3.new(500, 500, 500)
@@ -119,9 +116,7 @@ local function serverDetectionAvoid()
     end
 end
 
--- 強化されたリセット回避の実行
-enhancedResetAvoid()
-
+-- サーバー監視回避を定期的にチェック
 game:GetService("RunService").Heartbeat:Connect(function()
     serverDetectionAvoid()  -- サーバー監視回避
 end)
