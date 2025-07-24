@@ -1,5 +1,5 @@
--- daxhab_maximum_pro_final_v6.lua
--- 最強ワープ＆貫通統合スクリプト（最終形態最大限強化版、流れる背景追加）
+-- daxhab_maximum_pro_final_v8.lua
+-- 最強ワープ＆貫通統合スクリプト（リセット防止強化、運営対策完全無視）
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -24,7 +24,6 @@ end
 
 -- サーバー同期完全無効化：サーバー側の位置修正を無効化
 local function disableServerSync()
-    -- サーバーの位置修正無効化
     local metatable = getmetatable(game)
     metatable.__index = function(t, key)
         if key == "TeleportEvent" then
@@ -52,6 +51,17 @@ local function disableDebugging()
         if key == "Player" then return end  -- Playerの更新を無効化
         rawset(t, key, value)
     end
+end
+
+-- サーバーがキャラクターをリセットするのを防ぐ
+local function disableResetOnTeleport()
+    -- 位置と回転を強制的に設定
+    local originalCFrame = humanoidRootPart.CFrame
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if isEnabled then
+            humanoidRootPart.CFrame = originalCFrame  -- 強制的に元の位置に戻す
+        end
+    end)
 end
 
 -- ワープと貫通統合：ワープ後に貫通を続ける
@@ -86,23 +96,32 @@ local function teleportAndPenetrate()
     end
 end
 
--- 流れる背景テキストの作成
-local function createScrollingBackgroundText()
-    local backgroundText = Instance.new("TextLabel")
-    backgroundText.Parent = screenGui
-    backgroundText.Text = "daxhab  |  作者名: dax"
-    backgroundText.TextSize = 40
-    backgroundText.TextColor3 = Color3.fromRGB(255, 0, 0)
-    backgroundText.BackgroundTransparency = 1
-    backgroundText.Position = UDim2.new(0, 0, 0, 100)
-    backgroundText.Size = UDim2.new(1, 0, 0, 50)
+-- 流れる虹色背景テキストの作成
+local function createScrollingRainbowText()
+    local rainbowText = Instance.new("TextLabel")
+    rainbowText.Parent = screenGui
+    rainbowText.Text = "daxhab  |  作者名: dax"
+    rainbowText.TextSize = 40
+    rainbowText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    rainbowText.BackgroundTransparency = 1
+    rainbowText.Position = UDim2.new(0, 0, 0, 100)
+    rainbowText.Size = UDim2.new(1, 0, 0, 50)
+
+    -- 虹色エフェクト：テキストの色を周期的に変化させる
+    local colors = {Color3.fromRGB(255, 0, 0), Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 255, 0), Color3.fromRGB(0, 255, 0), Color3.fromRGB(0, 0, 255), Color3.fromRGB(75, 0, 130), Color3.fromRGB(238, 130, 238)}
+    local colorIndex = 1
+    while true do
+        rainbowText.TextColor3 = colors[colorIndex]
+        colorIndex = (colorIndex % #colors) + 1
+        wait(0.2)  -- 色変更の速度調整
+    end
 
     -- テキストを横に流す
     local function scrollText()
         while true do
-            backgroundText.Position = UDim2.new(0, backgroundText.Position.X.Offset - 2, 0, 100)
-            if backgroundText.Position.X.Offset < -backgroundText.TextBounds.X then
-                backgroundText.Position = UDim2.new(1, 0, 0, 100)  -- テキストが完全に流れたら反対側から再スタート
+            rainbowText.Position = UDim2.new(0, rainbowText.Position.X.Offset - 2, 0, 100)
+            if rainbowText.Position.X.Offset < -rainbowText.TextBounds.X then
+                rainbowText.Position = UDim2.new(1, 0, 0, 100)  -- テキストが完全に流れたら反対側から再スタート
             end
             wait(0.02)
         end
@@ -140,4 +159,4 @@ disableServerSync()
 disableDebugging()
 
 -- 背景テキストを流す
-createScrollingBackgroundText()
+createScrollingRainbowText()
