@@ -4,7 +4,7 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 local humanoid = character:WaitForChild("Humanoid")
 
--- プレイヤー高さの設定（7.5人分）
+-- プレイヤーの高さ（7.5人分）
 local playerHeight = 7.5 * 5  -- 1人あたり5 studsとして7.5人分
 local moveSpeed = 0.1  -- 移動速度（遅くして自然に見せる）
 local movementDelay = 0.1  -- 移動後のディレイ
@@ -29,7 +29,7 @@ end
 local function preventReset()
     while true do
         fixReset()  -- リセット回避処理
-        wait(0.5)  -- 0.5秒間隔で確認
+        wait(1)  -- 1秒間隔で確認
     end
 end
 
