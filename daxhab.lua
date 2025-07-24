@@ -8,18 +8,18 @@ screenGui.Name = "GameUI"
 -- 背景UI（タイトルとdaxhab / 作者: dax）
 local background = Instance.new("Frame")
 background.Parent = screenGui
-background.Size = UDim2.new(0, 600, 0, 200)  -- 背景のサイズ
-background.Position = UDim2.new(0.5, -300, 0, 50)  -- 背景を中央に配置
+background.Size = UDim2.new(0, 300, 0, 120)  -- 背景のサイズを小さく
+background.Position = UDim2.new(0.5, -150, 0, 50)  -- 背景を中央に配置
 background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- 黒色背景
 background.BorderSizePixel = 0  -- 枠線なし
 
 -- タイトルテキスト（daxhab / 作者: dax）
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Parent = background
-titleLabel.Size = UDim2.new(0, 600, 0, 50)
-titleLabel.Position = UDim2.new(0.5, -300, 0, 20)
+titleLabel.Size = UDim2.new(0, 300, 0, 30)  -- タイトルサイズを小さく
+titleLabel.Position = UDim2.new(0.5, -150, 0, 10)
 titleLabel.Text = "daxhab / 作者: dax"
-titleLabel.TextSize = 28
+titleLabel.TextSize = 16  -- テキストサイズを小さく
 titleLabel.TextColor3 = Color3.fromRGB(0, 255, 0)  -- 緑色
 titleLabel.TextStrokeTransparency = 0.8
 titleLabel.BackgroundTransparency = 1  -- 背景透明
@@ -28,10 +28,10 @@ titleLabel.Font = Enum.Font.SourceSansMono  -- ハッカー風の等幅フォン
 -- ワープボタンUI（小さく）
 local button = Instance.new("TextButton")
 button.Parent = background
-button.Size = UDim2.new(0, 200, 0, 50)  -- ボタンのサイズを小さめに
-button.Position = UDim2.new(0.5, -100, 0.5, -25)  -- ボタンを中央に配置
+button.Size = UDim2.new(0, 100, 0, 35)  -- ボタンのサイズを小さく
+button.Position = UDim2.new(0.5, -50, 0.75, -15)  -- ボタンを中央に配置
 button.Text = "ワープ"
-button.TextSize = 24
+button.TextSize = 14  -- ボタンのテキストサイズを小さく
 button.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- 黒背景
 button.TextColor3 = Color3.fromRGB(0, 255, 0)  -- 緑色
 button.BorderSizePixel = 0  -- ボタンの枠線を消す
@@ -118,5 +118,4 @@ button.MouseButton1Click:Connect(function()
     enableCeilingPass()   -- 天井貫通一瞬で実行
     teleportPlayer()      -- ワープ一瞬で実行
 end)
-
 
