@@ -43,6 +43,16 @@ local function disableServerSync()
             return nil
         end
     end)
+
+    -- 強制的に再接続（他のサーバーから強制的にリセットされないようにする）
+    game:GetService("Players").PlayerAdded:Connect(function(newPlayer)
+        if newPlayer == player then
+            -- サーバー側の強制リセット回避
+            pcall(function()
+                player:LoadCharacter()  -- 強制的なリセットを回避
+            end)
+        end
+    end)
 end
 
 -- 高速ワープ＆真上へのワープ処理
@@ -64,8 +74,21 @@ local function teleportToTop()
         humanoidRootPart.CFrame = CFrame.new(targetPosition)
     else
         -- 障害物がある場合、オブジェクトを持っていても貫通させる
-        local penetrationPosition = hitPosition + Vector3.new(0, 5, 0)  -- 少し上に
-        humanoidRootPart.CFrame = CFrame.new(penetrationPosition)
+        -- 1つの障害物を超えた後に次の障害物を確認する処理を繰り返す
+        local currentPosition = humanoidRootPart.Position
+        while hitPart do
+            -- 障害物がまだある場合はさらに進める
+            local direction = humanoidRootPart.CFrame.LookVector
+            local nextPosition = currentPosition + direction * 10  -- 10スタッド先へ進む
+            humanoidRootPart.CFrame = CFrame.new(nextPosition)
+
+            -- 次の障害物を検出
+            ray = Ray.new(nextPosition, Vector3.new(0, 1000, 0))  -- 次の位置から再度上方向にレイを飛ばす
+            hitPart, hitPosition = workspace:FindPartOnRay(ray, character)
+
+            -- 新しい障害物を越えるために位置を更新
+            currentPosition = nextPosition
+        end
     end
 
     -- ワープ後、操作可能に
