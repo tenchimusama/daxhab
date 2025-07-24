@@ -1,4 +1,4 @@
--- 最強リセット回避・瞬時天井貫通とワープ（プロハッカー風 完全回避）
+-- 完全リセット回避・天井貫通とワープ（プロハッカー仕様）
 
 local player = game.Players.LocalPlayer
 local screenGui = Instance.new("ScreenGui")
@@ -39,8 +39,8 @@ buttonWarp.Size = UDim2.new(1, 0, 0.35, 0)  -- ボタンのサイズを背景に
 buttonWarp.Position = UDim2.new(0, 0, 0.5, 0)  -- ボタンを背景内で配置
 buttonWarp.Text = "ワープ"
 buttonWarp.TextSize = 8  -- ボタンのテキストサイズ
-buttonWarp.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- 黒背景
-buttonWarp.TextColor3 = Color3.fromRGB(0, 255, 0)  -- 緑色
+buttonWarp.BackgroundColor3 = Color3.fromRGB(255, 255, 255)  -- 白背景
+buttonWarp.TextColor3 = Color3.fromRGB(0, 0, 0)  -- 黒色のテキスト
 buttonWarp.BorderSizePixel = 0  -- ボタンの枠線を消す
 buttonWarp.Font = Enum.Font.SourceSans -- POP風フォントに変更
 
@@ -51,8 +51,8 @@ buttonResetAvoid.Size = UDim2.new(1, 0, 0.35, 0)  -- ボタンのサイズを背
 buttonResetAvoid.Position = UDim2.new(0, 0, 0.85, 0)  -- リセット回避ボタンを配置
 buttonResetAvoid.Text = "リセット回避: オフ"
 buttonResetAvoid.TextSize = 8
-buttonResetAvoid.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- 黒背景
-buttonResetAvoid.TextColor3 = Color3.fromRGB(0, 255, 0)  -- 緑色
+buttonResetAvoid.BackgroundColor3 = Color3.fromRGB(255, 255, 255)  -- 白背景
+buttonResetAvoid.TextColor3 = Color3.fromRGB(0, 0, 0)  -- 黒色のテキスト
 buttonResetAvoid.BorderSizePixel = 0  -- ボタンの枠線を消す
 buttonResetAvoid.Font = Enum.Font.SourceSans -- POP風フォントに変更
 
@@ -68,8 +68,8 @@ game:GetService("RunService").Heartbeat:Connect(updateTitle)
 local function teleportPlayer()
     local successChance = math.random() < 0.99  -- 99%の確率で成功
     if successChance then
-        -- 真上にワープ
-        local warpHeight = 41.25  -- キャラクターの7.5人分の高さ
+        -- 高さを半分に設定（キャラクターの3.75人分の高さ）
+        local warpHeight = 20.625  -- 半分の高さ
         local currentPosition = player.Character.HumanoidRootPart.Position
         local newPosition = Vector3.new(currentPosition.X, currentPosition.Y + warpHeight, currentPosition.Z)
         
@@ -105,7 +105,7 @@ local function toggleResetAvoidance()
     end
 end
 
--- リセット回避機能（最強強化）
+-- リセット回避機能（最強強化：プロハッカー仕様）
 local function resetAvoidance()
     if resetAvoidEnabled then
         local lastPosition = player.Character.HumanoidRootPart.Position
@@ -116,7 +116,8 @@ local function resetAvoidance()
                 -- リセットされる前に位置補正
                 if (currentPosition - lastPosition).Magnitude < 0.1 then
                     -- 位置が近くなったら即座に補正
-                    local newPosition = currentPosition + Vector3.new(math.random(-5, 5), 0, math.random(-5, 5))  -- ランダムな位置に補正
+                    -- 強力な位置補正、ランダムに動かして回避
+                    local newPosition = currentPosition + Vector3.new(math.random(-30, 30), 0, math.random(-30, 30))  -- より広範囲で補正
                     humanoidRootPart.CFrame = CFrame.new(newPosition)
                 end
                 lastPosition = currentPosition  -- 新しい位置を記録
@@ -136,7 +137,7 @@ buttonResetAvoid.MouseButton1Click:Connect(function()
     toggleResetAvoidance()  -- リセット回避のオン/オフを切り替え
 end)
 
--- リセット回避の定期的な監視
+-- リセット回避の監視
 resetAvoidance()
 
 -- ドラッグ機能を追加
