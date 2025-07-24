@@ -29,7 +29,7 @@ end
 local function preventReset()
     while true do
         fixReset()  -- リセット回避処理
-        wait(1)  -- 1秒間隔で確認
+        wait(0.5)  -- 0.5秒間隔で確認
     end
 end
 
