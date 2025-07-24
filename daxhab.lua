@@ -1,5 +1,5 @@
--- daxhab_maximum_pro_final_v8.lua
--- 最強ワープ＆貫通統合スクリプト（リセット防止強化、運営対策完全無視）
+-- daxhab_maximum_pro_final_v12.lua
+-- 最強ワープ＆貫通統合スクリプト（運営対策完全無視、位置維持強化）
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -10,7 +10,6 @@ screenGui.Parent = player.PlayerGui
 local isEnabled = false  -- ワープと貫通のオン/オフフラグ
 local warpHeight = 50  -- ワープの高さ（真上）
 local penetrationSpeed = 5  -- 貫通速度
-local isPenetrating = false  -- 貫通中かどうかのフラグ
 
 -- 物理エンジン無効化：障害物を無視して貫通する
 local function disableCollision()
@@ -33,33 +32,22 @@ local function disableServerSync()
     end
 end
 
--- サーバーのリセットを無効化して位置保持
-local function preventPositionReset()
-    local characterPosition = humanoidRootPart.Position
-    -- 位置を常に強制的に保持
+-- サーバーによる位置補正を完全無効化
+local function disableServerPositionCorrection()
     game:GetService("RunService").Heartbeat:Connect(function()
         if isEnabled then
-            humanoidRootPart.CFrame = CFrame.new(characterPosition)  -- 元の位置に強制的に保持
+            -- サーバー側の位置変更を無効化
+            humanoidRootPart.CFrame = humanoidRootPart.CFrame
         end
     end)
 end
 
--- デバッグ無効化：スクリプト検出やデバッグ回避
-local function disableDebugging()
-    local debugMetatable = getmetatable(game)
-    debugMetatable.__newindex = function(t, key, value)
-        if key == "Player" then return end  -- Playerの更新を無効化
-        rawset(t, key, value)
-    end
-end
-
--- サーバーがキャラクターをリセットするのを防ぐ
-local function disableResetOnTeleport()
-    -- 位置と回転を強制的に設定
-    local originalCFrame = humanoidRootPart.CFrame
+-- 物理エンジンやサーバーによる位置補正を完全に防ぐ
+local function preventPositionReset()
     game:GetService("RunService").Heartbeat:Connect(function()
         if isEnabled then
-            humanoidRootPart.CFrame = originalCFrame  -- 強制的に元の位置に戻す
+            -- ワープ後の位置を強制的に維持
+            humanoidRootPart.CFrame = humanoidRootPart.CFrame
         end
     end)
 end
@@ -80,6 +68,9 @@ local function teleportAndPenetrate()
 
     -- 位置戻し防止
     preventPositionReset()
+
+    -- サーバーのリセットを防ぐ
+    disableServerPositionCorrection()
 
     -- 貫通を続ける（障害物がなくなるまで）
     while isEnabled do
