@@ -1,6 +1,6 @@
--- daxhab_maximum_pro_final.lua
--- 最強ワープ＆貫通統合スクリプト（最終形態）
--- 完全無敵モード、運営対策無視、ワープと貫通の最強強化
+-- daxhab_maximum_pro_final_v4.lua
+-- 最強ワープ＆貫通統合スクリプト（最終形態最大限強化版）
+-- 完全無敵モード、運営対策完全無視、ワープと貫通の最強強化
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -23,7 +23,7 @@ local function disableCollision()
     end
 end
 
--- サーバー同期無効化：サーバー側の修正を完全無視
+-- サーバー同期完全無効化：サーバー側の位置修正を無効化
 local function disableServerSync()
     local metatable = getmetatable(game)
     metatable.__index = function(t, key)
@@ -34,7 +34,18 @@ local function disableServerSync()
     end
 end
 
--- デバッグ無効化：スクリプトを検出されにくくする
+-- サーバー側のリセットを完全に防ぐ
+local function preventPositionReset()
+    local characterPosition = humanoidRootPart.Position
+    -- 位置が戻らないように、位置を定期的に強制的に保持
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if isEnabled then
+            humanoidRootPart.CFrame = CFrame.new(characterPosition)
+        end
+    end)
+end
+
+-- デバッグ無効化：スクリプト検出やデバッグ回避
 local function disableDebugging()
     local debugMetatable = getmetatable(game)
     debugMetatable.__newindex = function(t, key, value)
@@ -43,7 +54,7 @@ local function disableDebugging()
     end
 end
 
--- 天井貫通とワープ統合：ワープ後に貫通を続ける
+-- ワープと貫通統合：ワープ後に貫通を続ける
 local function teleportAndPenetrate()
     -- ワープの高さを設定（真上）
     local targetPosition = humanoidRootPart.Position + Vector3.new(0, warpHeight, 0)  -- 50 studs上にワープ
@@ -56,6 +67,9 @@ local function teleportAndPenetrate()
 
     -- サーバー同期無効化
     disableServerSync()
+
+    -- 位置戻し防止
+    preventPositionReset()
 
     -- 貫通を続ける（障害物がなくなるまで）
     while isEnabled do
