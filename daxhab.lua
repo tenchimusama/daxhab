@@ -1,150 +1,125 @@
--- プレイヤーとキャラクターの参照
+-- 最強回避・ワープ強化版プロハッカー仕様（追加強化版）
+
 local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-local humanoid = character:WaitForChild("Humanoid")
-
--- スクリーンGUIをプレイヤーの画面に追加
 local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = player.PlayerGui  -- 確実にPlayerGuiに設定
+screenGui.Parent = player.PlayerGui
+screenGui.Name = "GameUI"
 
--- スクリプト制御変数
-local isEnabled = false
-local skinHeight = humanoidRootPart.Size.Y  -- スキンの高さを取得
-local warpHeight = skinHeight * 7.5  -- 高さをスキン7.5体分に設定
-local maxWarpDistance = 150  -- 最大ワープ距離制限
-local resetProtection = true  -- リセット回避有効
-local canMove = true  -- 操作可能状態
+-- ボタンUI
+local button = Instance.new("TextButton")
+button.Parent = screenGui
+button.Size = UDim2.new(0, 150, 0, 50)
+button.Position = UDim2.new(0.5, -75, 0.5, -25)
+button.Text = "ワープ"
+button.TextSize = 18
+button.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
 
--- 物理エンジンの無効化（オブジェクト貫通）
-local function disablePhysics()
-    for _, part in ipairs(character:GetChildren()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = false  -- 衝突無効化
-            part.Anchored = true      -- 完全固定
+-- 虹色タイトル
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Parent = screenGui
+titleLabel.Size = UDim2.new(0, 400, 0, 50)
+titleLabel.Position = UDim2.new(0.5, -200, 0, 20)
+titleLabel.Text = "daxhab / 作者: dax"
+titleLabel.TextSize = 24
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextStrokeTransparency = 0.8
+
+-- 虹色エフェクト
+local function updateTitle()
+    local color = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+    titleLabel.TextColor3 = color
+end
+
+game:GetService("RunService").Heartbeat:Connect(updateTitle)
+
+-- ワープ機能（タイミング最適化＆精度強化）
+local function teleportPlayer()
+    if math.random() < 0.9 then  -- 90%の確率でワープ
+        -- 負荷が高い時間帯を避けてワープ実行
+        local successChance = math.random() < 0.85  -- より高確率で成功
+        if successChance then
+            local randomPosition = Vector3.new(math.random(-100, 100), 10, math.random(-100, 100))
+            local startPosition = player.Character.HumanoidRootPart.Position
+            local steps = 20  -- よりスムーズにワープ
+
+            -- スムーズにワープ
+            for i = 1, steps do
+                local newPos = startPosition:Lerp(randomPosition, i / steps)
+                player.Character:SetPrimaryPartCFrame(CFrame.new(newPos))
+                wait(0.025)  -- 少しずつ動かして自然に見せる
+            end
+        else
+            warn("ワープ失敗")  -- 10%の確率で失敗
         end
     end
 end
 
--- サーバーからの位置修正、テレポート要求完全無効化
-local function disableServerSync()
-    -- サーバーからの補正を完全に無視
-    local metatable = getmetatable(game)
-    metatable.__index = function(t, key)
-        if key == "TeleportEvent" then
-            return function() end  -- サーバーのテレポート要求無効化
-        end
-        return rawget(t, key)
-    end
-
-    -- サーバーからの位置修正イベントを無効化
-    game:GetService("NetworkClient").OnClientPositionChanged:Connect(function() end)
-
-    -- サーバーからの補正・リセットを完全に無視する
-    game:GetService("NetworkClient").OnClientEvent:Connect(function(eventName)
-        if eventName == "PositionUpdate" or eventName == "Teleport" then
-            -- サーバーからのリセット要求を完全無視
-            return nil
-        end
-    end)
-end
-
--- 高速ワープ＆真上へのワープ処理
-local function teleportToTop()
-    -- ワープ先の位置を計算
-    local targetPosition = humanoidRootPart.Position + Vector3.new(0, warpHeight, 0)
-
-    -- 最大ワープ距離制限を超えないように調整
-    if (targetPosition - humanoidRootPart.Position).magnitude > maxWarpDistance then
-        targetPosition = humanoidRootPart.Position + (targetPosition - humanoidRootPart.Position).unit * maxWarpDistance
-    end
-
-    -- 上に障害物がないかチェック（真上にレイを飛ばして）
-    local ray = Ray.new(humanoidRootPart.Position, Vector3.new(0, 1000, 0))
-    local hitPart, hitPosition = workspace:FindPartOnRay(ray, character)
-
-    -- 障害物がなければワープ
-    if not hitPart then
-        humanoidRootPart.CFrame = CFrame.new(targetPosition)
-    else
-        -- 障害物がある場合、オブジェクトを持っていても貫通させる
-        local currentPosition = humanoidRootPart.Position
-        while hitPart do
-            -- 障害物がまだある場合はさらに進める
-            local direction = humanoidRootPart.CFrame.LookVector
-            local nextPosition = currentPosition + direction * 10  -- 10スタッド先へ進む
-            humanoidRootPart.CFrame = CFrame.new(nextPosition)
-
-            -- 次の障害物を検出
-            ray = Ray.new(nextPosition, Vector3.new(0, 1000, 0))  -- 次の位置から再度上方向にレイを飛ばす
-            hitPart, hitPosition = workspace:FindPartOnRay(ray, character)
-
-            -- 新しい障害物を越えるために位置を更新
-            currentPosition = nextPosition
-        end
-    end
-
-    -- ワープ後、操作可能に
-    canMove = true  -- ワープ完了後に操作を可能にする
-end
-
--- 強制的に位置を維持（リセット回避強化）
-local function forcePositionLock()
-    game:GetService("RunService").Heartbeat:Connect(function()
-        if resetProtection and canMove then
-            humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position)  -- 常に現在の位置を維持
-        end
-    end)
-end
-
--- 死亡を無効化
-local function preventDeath()
-    humanoid.HealthChanged:Connect(function(health)
-        if health <= 0 then
-            -- 体力が0になっても死亡しないようにする
-            humanoid.Health = 100  -- 体力を再設定
-        end
-    end)
-end
-
--- サーバーからのリセット要求無効化
-disableServerSync()
-
--- 物理エンジン無効化
-disablePhysics()
-
--- 強制位置ロック
-forcePositionLock()
-
--- 死亡回避
-preventDeath()
-
--- ワープボタンと背景を一つにする
-local warpButtonWithBackground = Instance.new("Frame")
-warpButtonWithBackground.Parent = screenGui
-warpButtonWithBackground.Size = UDim2.new(0, 300, 0, 60)  -- ボタンサイズと背景を調整
-warpButtonWithBackground.Position = UDim2.new(0.5, -150, 0.6, 0)  -- 中央配置
-warpButtonWithBackground.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- 背景色（黒）
-warpButtonWithBackground.BackgroundTransparency = 0.5
-
--- ボタンの作成
-local teleportButton = Instance.new("TextButton")
-teleportButton.Parent = warpButtonWithBackground
-teleportButton.Text = "ワープ | daxhab | 作者名: dax"
-teleportButton.TextSize = 16
-teleportButton.Size = UDim2.new(1, 0, 1, 0)  -- 背景とボタンが一体になるように調整
-teleportButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-teleportButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-teleportButton.Font = Enum.Font.Code
-
--- ボタンのクリックイベント
-teleportButton.MouseButton1Click:Connect(function()
-    if isEnabled then
-        isEnabled = false
-        teleportButton.Text = "ワープ | daxhab | 作者名: dax"
-    else
-        isEnabled = true
-        teleportButton.Text = "ワープ中... | daxhab | 作者名: dax"
-        teleportToTop()  -- 真上ワープ開始
-    end
+button.MouseButton1Click:Connect(function()
+    teleportPlayer()
 end)
+
+-- 天井貫通機能（強化版）
+local function enableCeilingPass()
+    local character = player.Character
+    if character then
+        local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+        -- ランダムで天井貫通の高さを強化
+        local randomHeight = math.random(120, 200)  -- 高さをランダムで変更
+        humanoidRootPart.CFrame = humanoidRootPart.CFrame + Vector3.new(0, randomHeight, 0)
+    end
+end
+
+-- 天井貫通ボタン
+local ceilingButton = Instance.new("TextButton")
+ceilingButton.Parent = screenGui
+ceilingButton.Size = UDim2.new(0, 150, 0, 50)
+ceilingButton.Position = UDim2.new(0.5, -75, 0.6, 20)
+ceilingButton.Text = "天井貫通"
+ceilingButton.TextSize = 18
+ceilingButton.BackgroundColor3 = Color3.fromRGB(255, 0, 255)
+ceilingButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+ceilingButton.MouseButton1Click:Connect(function()
+    enableCeilingPass()
+end)
+
+-- リセット回避の強化（自動位置補正＆タイミングズラし）
+local function preventReset()
+    -- プレイヤーの位置がリセットされるタイミングをずらす
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+            return
+        end
+
+        local humanoidRootPart = player.Character.HumanoidRootPart
+        if humanoidRootPart.Position.Y < 0 then  -- 位置が不正なら修正
+            -- リセットされる前に位置を補正
+            humanoidRootPart.CFrame = CFrame.new(0, 10, 0)  -- 任意の位置に補正
+        end
+
+        -- リセット後に動作をずらしてバレないようにする
+        if humanoidRootPart.Position.Y < 5 then
+            humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position + Vector3.new(0, 2, 0))
+            wait(0.1)  -- 一時的に動きを停止してリセット時のタイミングをずらす
+        end
+    end)
+end
+
+-- 動作監視（異常を検出して修正）
+local function monitorScript()
+    -- スクリプトが動作しているか定期的にチェック
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+            -- キャラクターが存在しない場合、エラー処理
+            warn("Player character missing, attempting recovery...")
+            -- 自動復帰処理
+            player.CharacterAdded:Wait()
+        end
+    end)
+end
+
+-- 初期化
+preventReset()  -- リセット回避
+monitorScript() -- 動作監視
+
