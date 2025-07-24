@@ -1,31 +1,35 @@
--- 最強回避・ワープ強化版プロハッカー仕様（追加強化版）
+-- 最強リセット回避・プロハッカーレベル
 
 local player = game.Players.LocalPlayer
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player.PlayerGui
 screenGui.Name = "GameUI"
 
--- ボタンUI
+-- ボタンUI（ワープ・天井貫通を1つのボタンで同時に実行）
 local button = Instance.new("TextButton")
 button.Parent = screenGui
-button.Size = UDim2.new(0, 150, 0, 50)
-button.Position = UDim2.new(0.5, -75, 0.5, -25)
-button.Text = "ワープ"
-button.TextSize = 18
-button.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
-button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Size = UDim2.new(0, 300, 0, 100)  -- ボタンのサイズを大きく
+button.Position = UDim2.new(0.5, -150, 0.5, -50)  -- ボタンを中央に配置
+button.Text = "ワープ & 天井貫通"
+button.TextSize = 36
+button.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- 黒背景
+button.TextColor3 = Color3.fromRGB(0, 255, 0)  -- 緑色
+button.BorderSizePixel = 0  -- ボタンの枠線を消す
+button.Font = Enum.Font.SourceSansMono  -- ハッカー風の等幅フォント
 
--- 虹色タイトル
+-- 背景にタイトル（daxhab / 作者: dax）
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Parent = screenGui
-titleLabel.Size = UDim2.new(0, 400, 0, 50)
-titleLabel.Position = UDim2.new(0.5, -200, 0, 20)
+titleLabel.Size = UDim2.new(0, 600, 0, 50)  -- 背景のサイズ調整
+titleLabel.Position = UDim2.new(0.5, -300, 0, 20)
 titleLabel.Text = "daxhab / 作者: dax"
-titleLabel.TextSize = 24
-titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextSize = 28
+titleLabel.TextColor3 = Color3.fromRGB(0, 255, 0)  -- 緑色
 titleLabel.TextStrokeTransparency = 0.8
+titleLabel.BackgroundTransparency = 1  -- 背景透明
+titleLabel.Font = Enum.Font.SourceSansMono  -- ハッカー風の等幅フォント
 
--- 虹色エフェクト
+-- 虹色エフェクト（タイトルに追加）
 local function updateTitle()
     local color = Color3.fromHSV(tick() % 5 / 5, 1, 1)
     titleLabel.TextColor3 = color
@@ -33,11 +37,10 @@ end
 
 game:GetService("RunService").Heartbeat:Connect(updateTitle)
 
--- ワープ機能（タイミング最適化＆精度強化）
+-- ワープ機能（90%成功率）
 local function teleportPlayer()
     if math.random() < 0.9 then  -- 90%の確率でワープ
-        -- 負荷が高い時間帯を避けてワープ実行
-        local successChance = math.random() < 0.85  -- より高確率で成功
+        local successChance = math.random() < 0.85  -- 高確率で成功
         if successChance then
             local randomPosition = Vector3.new(math.random(-100, 100), 10, math.random(-100, 100))
             local startPosition = player.Character.HumanoidRootPart.Position
@@ -55,10 +58,6 @@ local function teleportPlayer()
     end
 end
 
-button.MouseButton1Click:Connect(function()
-    teleportPlayer()
-end)
-
 -- 天井貫通機能（強化版）
 local function enableCeilingPass()
     local character = player.Character
@@ -70,38 +69,49 @@ local function enableCeilingPass()
     end
 end
 
--- 天井貫通ボタン
-local ceilingButton = Instance.new("TextButton")
-ceilingButton.Parent = screenGui
-ceilingButton.Size = UDim2.new(0, 150, 0, 50)
-ceilingButton.Position = UDim2.new(0.5, -75, 0.6, 20)
-ceilingButton.Text = "天井貫通"
-ceilingButton.TextSize = 18
-ceilingButton.BackgroundColor3 = Color3.fromRGB(255, 0, 255)
-ceilingButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-ceilingButton.MouseButton1Click:Connect(function()
-    enableCeilingPass()
-end)
-
--- リセット回避の強化（自動位置補正＆タイミングズラし）
+-- リセット回避強化（プロハッカー仕様）
 local function preventReset()
-    -- プレイヤーの位置がリセットされるタイミングをずらす
+    -- プレイヤーの位置や状態を常に監視し、リセットされる兆候を事前に察知
+    local lastPosition = player.Character.HumanoidRootPart.Position
+    local resetDetectionThreshold = 0.1  -- 位置が異常に近い場合にリセット回避を強化
+
     game:GetService("RunService").Heartbeat:Connect(function()
         if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
             return
         end
 
         local humanoidRootPart = player.Character.HumanoidRootPart
-        if humanoidRootPart.Position.Y < 0 then  -- 位置が不正なら修正
-            -- リセットされる前に位置を補正
-            humanoidRootPart.CFrame = CFrame.new(0, 10, 0)  -- 任意の位置に補正
-        end
+        local currentPosition = humanoidRootPart.Position
 
-        -- リセット後に動作をずらしてバレないようにする
-        if humanoidRootPart.Position.Y < 5 then
-            humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position + Vector3.new(0, 2, 0))
-            wait(0.1)  -- 一時的に動きを停止してリセット時のタイミングをずらす
+        -- リセットされる前にプレイヤーの位置が異常に変化している場合
+        if (currentPosition - lastPosition).Magnitude < resetDetectionThreshold then
+            -- リセットされる兆候が見つかれば、即座に回避処理を開始
+            humanoidRootPart.CFrame = CFrame.new(currentPosition + Vector3.new(0, 3, 0))  -- 高速で位置補正
+            lastPosition = currentPosition  -- 新しい位置を記録
+        else
+            lastPosition = currentPosition  -- 正常な移動を記録
+        end
+    end)
+
+    -- 強化版リセット回避（リセット時に瞬時に位置を補正して回避）
+    local function resetAvoidance()
+        -- プレイヤーがリセットされた場合、即座にリセット回避を実行
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local humanoidRootPart = player.Character.HumanoidRootPart
+            local recoveryPosition = humanoidRootPart.Position + Vector3.new(0, 5, 0)  -- 5ユニット上に補正
+            humanoidRootPart.CFrame = CFrame.new(recoveryPosition)
+        end
+    end
+
+    -- リセット後の動作停止と再開の最適化
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            -- 定期的に位置を補正し、動作のタイミングをずらす
+            local humanoidRootPart = player.Character.HumanoidRootPart
+            if humanoidRootPart.Position.Y < 5 then  -- 位置がリセットされた場合
+                humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position + Vector3.new(0, 1, 0))  -- 少しだけ位置を調整
+                wait(0.1)  -- 一時停止してタイミングをずらす
+            end
         end
     end)
 end
@@ -123,3 +133,8 @@ end
 preventReset()  -- リセット回避
 monitorScript() -- 動作監視
 
+-- ボタンをクリックしたときに両方の機能を同時に実行
+button.MouseButton1Click:Connect(function()
+    teleportPlayer()      -- ワープ実行
+    enableCeilingPass()   -- 天井貫通実行
+end)
