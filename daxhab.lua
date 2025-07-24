@@ -3,10 +3,10 @@ local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 local humanoid = character:WaitForChild("Humanoid")
-local screenGui = Instance.new("ScreenGui")
 
 -- スクリーンGUIをプレイヤーの画面に追加
-screenGui.Parent = player.PlayerGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player.PlayerGui  -- 確実にPlayerGuiに設定
 
 -- スクリプト制御変数
 local isEnabled = false
@@ -47,25 +47,6 @@ local function disableServerSync()
             return nil
         end
     end)
-end
-
--- 特定のエリア（例えば家の中）でリセットを無効化
-local function checkAndPreventResetAtHome()
-    -- プレイヤーの位置を取得
-    local playerPosition = humanoidRootPart.Position
-
-    -- 家の中の範囲（仮定：家の中心が (0,0,0) で、半径50スタッドの範囲内）
-    local homeCenter = Vector3.new(0, 0, 0)  -- 家の中心位置
-    local homeRadius = 50  -- 半径50スタッド以内を家の中とする
-
-    -- プレイヤーが家の中にいるか確認
-    if (playerPosition - homeCenter).magnitude < homeRadius then
-        -- 家の中にいる場合、リセットを無効化
-        resetProtection = true  -- 家の中でリセット回避
-    else
-        -- 家の外にいる場合はリセットを許可
-        resetProtection = false
-    end
 end
 
 -- 高速ワープ＆真上へのワープ処理
@@ -137,14 +118,6 @@ forcePositionLock()
 
 -- 死亡回避
 preventDeath()
-
--- リセット回避
-local function preventReset()
-    -- 特定の場所（家の中）でリセットされないようにする
-    checkAndPreventResetAtHome()
-end
-
-preventReset()
 
 -- ワープボタンと背景を一つにする
 local warpButtonWithBackground = Instance.new("Frame")
