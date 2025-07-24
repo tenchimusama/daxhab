@@ -14,6 +14,8 @@ local maxWarpDistance = 150  -- 最大ワープ距離制限
 local resetProtection = true  -- リセット回避有効
 local canMove = true  -- 操作可能状態
 local networkOverride = true -- 通信改竄無効化
+local playerID = player.UserId  -- プレイヤーID
+local lastPosition = humanoidRootPart.Position  -- 最後の位置
 
 -- 物理エンジンの無効化（オブジェクト貫通）
 local function disablePhysics()
@@ -145,6 +147,17 @@ local function backdoorProtection()
     end
 end
 
+-- 高度なトラフィック改竄（すべてのデータ通信を隠蔽）
+local function trafficSpoofing()
+    -- プロトコルのレベルでデータの偽装を行う（例：ゲーム通信の中身を隠す）
+    game:GetService("NetworkClient").OnClientEvent:Connect(function(eventName, ...)
+        if eventName == "PositionUpdate" or eventName == "Teleport" then
+            -- 不正なリセットやテレポートのイベントを無効化
+            return
+        end
+    end)
+end
+
 -- スクリプトの初期化
 disablePhysics()       -- 物理エンジン無効化
 disableServerSync()    -- サーバーからの位置修正無効化
@@ -152,6 +165,7 @@ forcePositionLock()    -- 位置ロック
 preventKick()          -- キック防止
 disableEngineMonitoring() -- エンジン監視無効化
 backdoorProtection()   -- バックドア保護
+trafficSpoofing()      -- トラフィック偽装
 
 -- ワープボタンの作成
 local teleportButton = Instance.new("TextButton")
