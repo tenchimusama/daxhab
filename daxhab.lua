@@ -173,4 +173,3 @@ teleportButton.MouseButton1Click:Connect(function()
         teleportToTop()  -- 真上ワープ開始
     end
 end)
-
