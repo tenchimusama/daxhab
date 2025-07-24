@@ -1,5 +1,5 @@
--- daxhab_maximum_pro_final_v12.lua
--- 最強ワープ＆貫通統合スクリプト（運営対策完全無視、位置維持強化）
+-- daxhab_maximum_pro_final_v14.lua
+-- 完全無敵のワープ＆貫通スクリプト（運営対策完全無視、最強リセット防止、プロハッカー仕様）
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
