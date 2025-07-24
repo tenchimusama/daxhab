@@ -1,6 +1,6 @@
--- daxhab_maximum_pro.lua
--- 最強プロハッカースクリプト
--- ワープと貫通機能を完全に無効化した最強のスクリプト
+-- daxhab_maximum_pro_v8.lua
+-- プロハッカー並みの最強ワープ＆貫通統合スクリプト
+-- 完全無敵モード、運営対策完全無視、ワープと貫通の最強強化
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -8,7 +8,11 @@ local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player.PlayerGui
 
--- 物理エンジン無効化：障害物を無視する
+local isEnabled = false  -- ワープと貫通のオン/オフフラグ
+local warpHeight = 50  -- ワープの高さ（真上）
+local penetrationSpeed = 5  -- 貫通速度
+
+-- 物理エンジン無効化：障害物を無視して貫通する
 local function disableCollision()
     for _, part in ipairs(character:GetChildren()) do
         if part:IsA("BasePart") then
@@ -18,18 +22,18 @@ local function disableCollision()
     end
 end
 
--- サーバー同期完全無効化：ワープや貫通後のサーバー側の修正を防ぐ
+-- サーバー同期無効化：サーバー側の修正を完全無視
 local function disableServerSync()
     local metatable = getmetatable(game)
     metatable.__index = function(t, key)
         if key == "TeleportEvent" then
-            return function() end  -- サーバーとの同期を完全に無効化
+            return function() end  -- サーバー同期を無効化
         end
         return rawget(t, key)
     end
 end
 
--- デバッグ無効化：ゲームのデバッグ機能を無効化し、スクリプトを検出されにくくする
+-- デバッグ無効化：スクリプトを検出されにくくする
 local function disableDebugging()
     local debugMetatable = getmetatable(game)
     debugMetatable.__newindex = function(t, key, value)
@@ -38,68 +42,53 @@ local function disableDebugging()
     end
 end
 
--- ワープ機能：指定した位置に瞬時にワープ
-local function teleportToTarget(targetPosition)
+-- ワープと貫通統合：ワープ後に貫通を続ける
+local function teleportAndPenetrate()
+    -- ワープの高さを設定（真上）
+    local targetPosition = humanoidRootPart.Position + Vector3.new(0, warpHeight, 0)  -- 50 studs上にワープ
+
     -- ワープ実行
     humanoidRootPart.CFrame = CFrame.new(targetPosition)
-    
-    -- ワープ後に物理無効化
+
+    -- 物理無効化
     disableCollision()
-    
+
     -- サーバー同期無効化
     disableServerSync()
-    
-    -- ワープ完了後、エフェクト表示
-    local warpEffect = Instance.new("Part")
-    warpEffect.Shape = Enum.PartType.Ball
-    warpEffect.Size = Vector3.new(10, 10, 10)
-    warpEffect.Position = humanoidRootPart.Position
-    warpEffect.Anchored = true
-    warpEffect.CanCollide = false
-    warpEffect.Material = Enum.Material.Neon
-    warpEffect.Color = Color3.fromRGB(0, 255, 255)
-    warpEffect.Parent = game.Workspace
-    game.Debris:AddItem(warpEffect, 0.5)  -- 0.5秒後にエフェクト削除
-end
 
--- 貫通機能：障害物を無視して進み続ける
-local function enablePenetration()
-    -- 貫通前に物理エンジン完全無効化
-    disableCollision()
-    
-    -- 貫通を無限に続ける
-    while true do
-        humanoidRootPart.CFrame = humanoidRootPart.CFrame * CFrame.new(0, 0, 10)  -- 前方に貫通
-        wait(0.1)  -- 貫通速度
+    -- 貫通を続ける（障害物がなくなるまで）
+    while isEnabled do
+        local targetPosition = humanoidRootPart.Position + humanoidRootPart.CFrame.LookVector * penetrationSpeed  -- 進行方向
+        humanoidRootPart.CFrame = CFrame.new(targetPosition)  -- 前方に進む
+
+        -- 障害物がなくなったら貫通終了
+        local partInFront = workspace:FindPartOnRay(Ray.new(humanoidRootPart.Position, humanoidRootPart.CFrame.LookVector * 10), character)
+        if not partInFront then
+            break  -- 障害物がなくなったら終了
+        end
+        wait(0.1)  -- 貫通速度調整
     end
 end
 
--- ワープボタン：クリックした位置にワープ
+-- ワープ＆貫通ボタン：1つのボタンでワープと貫通を制御
 local teleportButton = Instance.new("TextButton")
 teleportButton.Parent = screenGui
-teleportButton.Text = "ワープ"
+teleportButton.Text = "ワープ＆貫通オン"
 teleportButton.TextSize = 30
 teleportButton.Size = UDim2.new(0, 200, 0, 50)
 teleportButton.Position = UDim2.new(0.5, -100, 0.6, 0)
-teleportButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-teleportButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+teleportButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+teleportButton.TextColor3 = Color3.fromRGB(0, 0, 0)
 teleportButton.MouseButton1Click:Connect(function()
-    -- クリック位置にワープ
-    local targetPosition = player:GetMouse().Hit.p
-    teleportToTarget(targetPosition)
-end)
-
--- 貫通ボタン：貫通を開始
-local penetrationButton = Instance.new("TextButton")
-penetrationButton.Parent = screenGui
-penetrationButton.Text = "貫通"
-penetrationButton.TextSize = 30
-penetrationButton.Size = UDim2.new(0, 200, 0, 50)
-penetrationButton.Position = UDim2.new(0.5, -100, 0.7, 0)
-penetrationButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-penetrationButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-penetrationButton.MouseButton1Click:Connect(function()
-    enablePenetration()  -- 貫通開始
+    -- ワープ＆貫通オン/オフの切り替え
+    if isEnabled then
+        isEnabled = false  -- オフにする
+        teleportButton.Text = "ワープ＆貫通オン"
+    else
+        isEnabled = true  -- オンにする
+        teleportButton.Text = "ワープ＆貫通オフ"
+        teleportAndPenetrate()  -- ワープ＆貫通開始
+    end
 end)
 
 -- 初期化処理：デバッグ無効化、物理エンジン無効化、サーバー同期無効化
