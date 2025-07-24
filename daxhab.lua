@@ -3,7 +3,7 @@ local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = player.PlayerGui
+screenGui.Parent = player.PlayerGui  -- 正しくPlayerGuiに親設定
 
 -- スクリプト制御変数
 local isEnabled = false
@@ -42,29 +42,6 @@ local function disableServerSync()
         if eventName == "PositionUpdate" or eventName == "Teleport" then
             -- 無視
             return nil
-        end
-    end)
-end
-
--- 自動的に接続を再試行する処理
-local function autoReconnect()
-    local success, err = pcall(function()
-        game:GetService("Players").PlayerAdded:Wait()
-    end)
-    
-    if not success then
-        -- 再接続
-        wait(1)
-        autoReconnect()
-    end
-end
-
--- ランダム移動による検出回避
-local function randomMovement()
-    game:GetService("RunService").Heartbeat:Connect(function()
-        if isEnabled then
-            local randomOffset = Vector3.new(math.random(), 0, math.random()) * 0.1
-            humanoidRootPart.CFrame = humanoidRootPart.CFrame + randomOffset
         end
     end)
 end
@@ -117,34 +94,6 @@ local function preventKick()
     end)
 end
 
--- 動的バックドア回避：悪意のあるコードや侵入を防ぐ
-local function dynamicBackdoorDetection()
-    -- バックドアからの不正アクセスを動的に検出
-    while true do
-        if not game:GetService("Players"):FindFirstChild(player.Name) then
-            -- プレイヤーがサーバーから切断された場合
-            return
-        end
-        wait(1)  -- チェック間隔
-    end
-end
-
--- 最強回避の追加：サーバーからの検出回避
-local function evadeServerDetection()
-    -- サーバー側の異常検出を回避するためにランダム移動を生成
-    game:GetService("RunService").Heartbeat:Connect(function()
-        -- ランダムな動きによる行動の擬似化
-        humanoidRootPart.CFrame = humanoidRootPart.CFrame + Vector3.new(math.random(), 0, math.random())
-    end)
-end
-
--- スクリプトの初期化
-disableServerSync()    -- サーバーからの位置修正無効化
-preventKick()          -- キック防止
-dynamicBackdoorDetection() -- バックドア回避
-evadeServerDetection()  -- サーバー検出回避
-autoReconnect() -- 自動再接続処理
-
 -- ワープボタンの作成
 local teleportButton = Instance.new("TextButton")
 teleportButton.Parent = screenGui
@@ -155,7 +104,7 @@ teleportButton.Position = UDim2.new(0.5, -75, 0.6, 0)
 teleportButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
 teleportButton.TextColor3 = Color3.fromRGB(0, 0, 0)
 teleportButton.Font = Enum.Font.Code
-teleportButton.Visible = true -- ボタンが見えるように設定
+teleportButton.Visible = true -- ボタンが表示されるように設定
 
 -- ボタンのクリックイベント
 teleportButton.MouseButton1Click:Connect(function()
@@ -185,3 +134,9 @@ local function createBackgroundText()
 end
 
 createBackgroundText()  -- 背景テキスト表示
+
+-- サーバーからの位置修正無効化
+disableServerSync()    
+
+-- キック防止
+preventKick()
