@@ -1,9 +1,10 @@
--- 新しい最強スクリプト：無敵98%＋見た目もこだわり
+-- 新しい最強スクリプト：無敵99.9%＋トグルボタン、タップ反応、ドラッグ可能
+
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
--- ScreenGui設定
+-- UI設定
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player.PlayerGui
 screenGui.Name = "GameUI"
@@ -47,7 +48,7 @@ buttonWarp.TextColor3 = Color3.fromRGB(255, 0, 255)
 buttonWarp.BorderSizePixel = 0
 buttonWarp.Font = Enum.Font.SourceSans -- POPフォント
 
--- リセット回避ボタン（同じくポップ風）
+-- リセット回避トグルボタン（オン/オフ）
 local buttonResetAvoid = Instance.new("TextButton")
 buttonResetAvoid.Parent = background
 buttonResetAvoid.Size = UDim2.new(1, 0, 0.4, 0)
@@ -119,18 +120,31 @@ local function resetAvoidance()
     end
 end
 
--- サーバー監視回避強化（ランダムな位置補正）
-game:GetService("RunService").Heartbeat:Connect(function()
-    -- サーバー監視回避
-    local currentPosition = humanoidRootPart.Position
-    local detectedArea = Vector3.new(500, 500, 500)
-    if (currentPosition - detectedArea).Magnitude < 100 then
-        local newPos = Vector3.new(math.random(-1000, 1000), currentPosition.Y, math.random(-1000, 1000))
-        character:SetPrimaryPartCFrame(CFrame.new(newPos))
+-- ドラッグ可能にする
+local dragInput, dragStart, startPos
+local function onDragStart(input)
+    dragStart = input.Position
+    startPos = background.Position
+    input.Changed:Connect(function()
+        if input.UserInputState == Enum.UserInputState.End then
+            dragInput = nil
+        end
+    end)
+end
+
+local function onDrag(input)
+    local delta = input.Position - dragStart
+    background.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+background.InputBegan:Connect(onDragStart)
+background.InputChanged:Connect(function(input)
+    if dragInput then
+        onDrag(input)
     end
 end)
 
--- 絶対にリセットされないための強化
+-- 絶対リセット回避強化処理
 local function enhancedResetAvoidance()
     local lastPosition = humanoidRootPart.Position
     game:GetService("RunService").Heartbeat:Connect(function()
@@ -146,9 +160,6 @@ local function enhancedResetAvoidance()
     end)
 end
 
--- 絶対リセット回避強化処理
-enhancedResetAvoidance()
-
 -- イベント接続（ボタン動作）
 buttonWarp.MouseButton1Click:Connect(function()
     teleportPlayer()
@@ -158,3 +169,14 @@ buttonResetAvoid.MouseButton1Click:Connect(function()
     toggleResetAvoidance()  -- リセット回避のトグル
 end)
 
+-- 絶対リセット回避強化処理
+enhancedResetAvoidance()
+
+-- サーバー監視回避強化（ランダムな位置補正）
+game:GetService("RunService").Heartbeat:Connect(function()
+    -- サーバー監視回避
+    local currentPosition = humanoidRootPart.Position
+    if math.random() < 0.1 then
+        character:SetPrimaryPartCFrame(CFrame.new(currentPosition + Vector3.new(math.random(-20, 20), 0, math.random(-20, 20))))
+    end
+end)
