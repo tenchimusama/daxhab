@@ -46,26 +46,17 @@ local function disableServerSync()
     end)
 end
 
--- 高速ワープ＆屋上ワープ処理
-local function teleportToRooftop()
-    -- ワープする建物の座標（屋上）
-    local building = workspace:FindFirstChild("Building")  -- 建物の名前を適切に指定
-    if not building then
-        warn("Building not found!")
-        return
-    end
-
-    local roofHeight = building.Position.Y + building.Size.Y / 2  -- 屋上の高さを計算
-
-    -- ワープ先の位置を計算（屋上の高さまで）
-    local targetPosition = humanoidRootPart.Position + Vector3.new(0, roofHeight - humanoidRootPart.Position.Y, 0)
+-- 高速ワープ＆真上へのワープ処理
+local function teleportToTop()
+    -- ワープ先の位置を計算
+    local targetPosition = humanoidRootPart.Position + Vector3.new(0, warpHeight, 0)
 
     -- 最大ワープ距離制限を超えないように調整
     if (targetPosition - humanoidRootPart.Position).magnitude > maxWarpDistance then
         targetPosition = humanoidRootPart.Position + (targetPosition - humanoidRootPart.Position).unit * maxWarpDistance
     end
 
-    -- 上に障害物がないかチェック
+    -- 上に障害物がないかチェック（真上にレイを飛ばして）
     local ray = Ray.new(humanoidRootPart.Position, Vector3.new(0, 1000, 0))
     local hitPart, hitPosition = workspace:FindPartOnRay(ray, character)
 
@@ -80,18 +71,6 @@ local function teleportToRooftop()
 
     -- ワープ後、操作可能に
     canMove = true  -- ワープ完了後に操作を可能にする
-end
-
--- キック防止（サーバーから強制切断を無効化）
-local function preventKick()
-    game:GetService("Players").PlayerAdded:Connect(function(newPlayer)
-        if newPlayer == player then
-            -- キック処理を無効化
-            pcall(function()
-                game:GetService("Players").LocalPlayer:Kick("ゲームが強制終了されました")  -- エラーメッセージを無効化
-            end)
-        end
-    end)
 end
 
 -- ワープボタンと背景を一つにする
@@ -120,12 +99,26 @@ teleportButton.MouseButton1Click:Connect(function()
     else
         isEnabled = true
         teleportButton.Text = "ワープ中... | daxhab | 作者名: dax"
-        teleportToRooftop()  -- 屋上ワープ開始
+        teleportToTop()  -- 真上ワープ開始
     end
 end)
 
 -- サーバーからの位置修正無効化
 disableServerSync()    
 
--- キック防止
+-- 物理エンジン無効化
+disablePhysics()
+
+-- キック防止（サーバーから強制切断を無効化）
+local function preventKick()
+    game:GetService("Players").PlayerAdded:Connect(function(newPlayer)
+        if newPlayer == player then
+            -- キック処理を無効化
+            pcall(function()
+                game:GetService("Players").LocalPlayer:Kick("ゲームが強制終了されました")  -- エラーメッセージを無効化
+            end)
+        end
+    end)
+end
+
 preventKick()
