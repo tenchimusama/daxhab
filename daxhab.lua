@@ -6,25 +6,15 @@ local playerHeight = 7.5 * 5  -- キャラの高さを7.5人分 (1人あたり5 
 local moveSpeed = 0.05  -- 移動速度を遅くする（自然な動き）
 local movementDelay = 0.1  -- 移動後のディレイ
 local antiKickDelay = 1  -- アンチキックのための確認間隔
+local randomMoveDelay = 0.5  -- ランダム化の間隔
 
--- 屋上と1階の座標を設定（例）
+-- 屋上の座標を設定（例）
 local roofPosition = Vector3.new(0, 100, 0)  -- 屋上の位置
-local floorPosition = Vector3.new(0, 0, 0)   -- 1階の位置
 
--- ランダムなオフセットを生成して、動きに自然さを加える
-local function getRandomOffset()
-    return Vector3.new(math.random(-1, 1), math.random(-1, 1), math.random(-1, 1)) * 0.5
-end
-
--- スムーズな移動を行う関数（補間）
-local function smoothMove(targetPosition)
-    local currentPosition = humanoidRootPart.Position
-    local steps = 50  -- 移動を小刻みに行うためのステップ数
-    for i = 1, steps do
-        currentPosition = currentPosition:Lerp(targetPosition + getRandomOffset(), moveSpeed)
-        humanoidRootPart.CFrame = CFrame.new(currentPosition)
-        wait(movementDelay)
-    end
+-- 真上にワープする関数
+local function moveUp()
+    local targetPosition = humanoidRootPart.Position + Vector3.new(0, playerHeight, 0)  -- 現在位置の真上
+    smoothMove(targetPosition)
 end
 
 -- 移動後に座標補正やバグを防止するための処理を追加
@@ -36,19 +26,49 @@ local function antiKickFix()
     end
 end
 
+-- リセット後に停止または補正する処理
+local function stopIfReset()
+    if humanoidRootPart.Position.Y < 1 then  -- Y座標が低い＝リセット状態
+        print("リセット状態が検出されました。位置を補正します。")
+        -- リセットされた場合、少しだけ位置を補正
+        humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position + Vector3.new(0, 5, 0))  -- Y座標を少し上に補正
+        return true
+    end
+    return false
+end
+
+-- スムーズな移動を行う関数（補間）
+local function smoothMove(targetPosition)
+    local currentPosition = humanoidRootPart.Position
+    local steps = 50  -- 移動を小刻みに行うためのステップ数
+    for i = 1, steps do
+        -- ランダムオフセットを追加して動きをより自然にする
+        currentPosition = currentPosition:Lerp(targetPosition + Vector3.new(math.random(-0.1, 0.1), math.random(-0.1, 0.1), math.random(-0.1, 0.1)), moveSpeed)
+        humanoidRootPart.CFrame = CFrame.new(currentPosition)
+        wait(movementDelay)
+    end
+end
+
+-- ランダム化を加える関数
+local function addRandomMovement()
+    local randomOffset = Vector3.new(math.random(-0.2, 0.2), 0, math.random(-0.2, 0.2))
+    humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position + randomOffset)
+end
+
 -- UIにボタンを作成
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player.PlayerGui
 
 -- カラフルで可愛いボタンの作成
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 200, 0, 50)
-button.Position = UDim2.new(0.5, -100, 0.5, -25)
-button.Text = "屋上/1階 入れ替え"  -- ボタンにテキストを表示
-button.TextColor3 = Color3.fromRGB(255, 255, 255)  -- テキスト色を白に設定
-button.TextSize = 18  -- テキストのサイズ
-button.TextStrokeTransparency = 0.8  -- テキストにストロークを追加
+button.Size = UDim2.new(0, player.PlayerGui.AbsoluteSize.X / 8, 0, player.PlayerGui.AbsoluteSize.Y / 8)
+button.Position = UDim2.new(0.5, -player.PlayerGui.AbsoluteSize.X / 16, 0.5, -player.PlayerGui.AbsoluteSize.Y / 16)
+button.Text = "daxhab/作者dax"  -- ボタンにテキストを表示
+button.TextColor3 = Color3.fromRGB(0, 255, 0)  -- ハッカーカラー（緑）
+button.TextSize = 20  -- テキストのサイズ
+button.TextStrokeTransparency = 0.5  -- テキストにストロークを追加
 button.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)  -- ストローク色を黒に設定
+button.Font = Enum.Font.Code -- ハッカーフォントに設定
 
 -- ボタンの背景にグラデーションを追加
 local gradient = Instance.new("UIGradient")
@@ -61,46 +81,48 @@ gradient.Parent = button
 
 button.Parent = screenGui
 
--- 屋上と1階の入れ替え処理
-local function swapFloors()
-    -- プレイヤーが持っているオブジェクトをリスト化
-    local objectsToMove = {}
-    for _, obj in pairs(character:GetChildren()) do
-        if obj:IsA("BasePart") and obj.Parent == character then
-            table.insert(objectsToMove, obj)
-        end
+-- ボタンがクリックされたときの処理
+button.MouseButton1Click:Connect(function()
+    -- リセットされていたら移動停止
+    if stopIfReset() then
+        return
     end
+    -- 真上に移動
+    moveUp()
 
-    -- 1階→屋上のワープ
-    if humanoidRootPart.Position.Y < 10 then  -- プレイヤーが1階にいる場合
-        smoothMove(roofPosition)  -- 屋上に移動
-    else
-        -- 屋上→1階のワープ
-        smoothMove(floorPosition)  -- 1階に移動
-    end
-
-    -- オブジェクトも一緒に移動させる
-    for _, obj in pairs(objectsToMove) do
-        obj.CFrame = humanoidRootPart.CFrame
-    end
-
-    -- パッチ回避: 不正アクセスを防ぐために動作をランダム化
+    -- 移動後、リセット回避処理
     antiKickFix()
+end)
 
-    -- 上にオブジェクトを生成（例: 部屋の中にブロックを生成）
-    local object = Instance.new("Part")
-    object.Size = Vector3.new(5, 5, 5)
-    object.Position = humanoidRootPart.Position + Vector3.new(0, 5, 0)
-    object.Anchored = true
-    object.Parent = workspace
-end
+-- ドラッグ可能にするための処理
+local dragging = false
+local dragStart = nil
+local startPos = nil
 
-button.MouseButton1Click:Connect(swapFloors)
+button.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = button.Position
+    end
+end)
 
--- 高度な対策強化のため、ランダムな位置変動と時間差での動作を繰り返す
+button.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        button.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+button.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- 高度なランダム化と微調整で、監視ツール対策を強化
 while true do
-    -- 監視を回避するために、少しずつ動かす
-    local randomOffset = getRandomOffset()
-    humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position + randomOffset)
-    wait(math.random(2, 5))  -- ランダムな待機時間
+    -- 微調整で不自然な移動を防ぐ
+    addRandomMovement()  -- ランダムオフセットを加えて動きが自然に
+    wait(randomMoveDelay)  -- ランダム待機時間で不規則な動き
 end
