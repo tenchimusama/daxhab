@@ -1,4 +1,4 @@
--- 最強の屋上との空間入れ替えスクリプト（着地強化版）
+-- 最強の屋上との空間入れ替えスクリプト（修正版）
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -63,7 +63,7 @@ end
 
 -- 空間入れ替え実行（屋上に移動後、その位置にとどまる）
 local function swapSpaces()
-    -- ワープ中でないかをチェック
+    -- ボタンが押されていないときに実行しないようにフラグで管理
     if isSwapping then
         warn("現在、他のワープ処理が実行中です。")
         return
@@ -89,7 +89,7 @@ local function swapSpaces()
 
     print("プレイヤーは屋上にとどまりました。")
 
-    -- ここでプレイヤーは屋上にとどまります
+    -- プレイヤーが屋上に確実にとどまるように位置を修正
     ensureValidPosition()
 
     isSwapping = false  -- 処理終了
@@ -99,8 +99,10 @@ end
 local function ensureValidPosition()
     -- プレイヤーが屋上にとどまるため、位置がずれていないかを確認
     local currentPosition = humanoidRootPart.Position
-    if currentPosition.Y < 0 or currentPosition.Y > maxPositionY or (currentPosition - roofPosition).Magnitude > maxWarpDistance then
-        humanoidRootPart.CFrame = CFrame.new(roofPosition)  -- プレイヤーが不正位置にいる場合、屋上に強制的に戻す
+    -- Y座標が屋上の範囲内であるか、かつある範囲から外れないことを確認
+    if currentPosition.Y < roofPosition.Y or currentPosition.Y > roofPosition.Y + 10 then
+        -- 屋上に強制的に戻す
+        humanoidRootPart.CFrame = CFrame.new(roofPosition)  
         print("不正な位置検出、屋上に戻しました。")
     end
 end
