@@ -26,7 +26,7 @@ titleLabel.TextStrokeTransparency = 0.5
 titleLabel.BackgroundTransparency = 1
 titleLabel.Font = Enum.Font.GothamBold
 
--- 仕切り（ボタンとタイトルの間に仕切り）
+-- 仕切り
 local divider = Instance.new("Frame")
 divider.Parent = background
 divider.Size = UDim2.new(0, 500, 0, 2)
@@ -63,15 +63,16 @@ local function updateButtonState(button, isActive)
     end
 end
 
--- ワープ機能
+-- ワープ機能：真上にワープ（オブジェクト貫通）
 local function teleportPlayer()
-    local successChance = math.random() < 0.999
+    local successChance = math.random() < 0.999  -- 成功確率99.9%
     if successChance then
         local currentPosition = humanoidRootPart.Position
-        local warpHeight = 6.5 * character.Humanoid.HipWidth
+        local warpHeight = 6.5 * character.Humanoid.HipWidth  -- 高さをキャラ6.5分に設定
         local targetPosition = Vector3.new(currentPosition.X, currentPosition.Y + warpHeight, currentPosition.Z)
         
-        -- 一瞬でワープ
+        -- オブジェクトを貫通してワープ
+        -- ワープ後の位置にオブジェクトがあっても貫通して移動するようにする
         character:SetPrimaryPartCFrame(CFrame.new(targetPosition))
         updateButtonState(buttonWarp, true)
     else
@@ -80,7 +81,7 @@ local function teleportPlayer()
 end
 
 buttonWarp.MouseButton1Click:Connect(function()
-    teleportPlayer()
+    teleportPlayer()  -- ワープを実行
 end)
 
 -- リセット回避
