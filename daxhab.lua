@@ -1,5 +1,5 @@
--- daxhab_maximum_v19.lua
--- 最強ワープ&貫通スクリプト（リセット防止、完全位置維持、背景強化）
+-- daxhab_maximum_v20.lua
+-- 最強ワープ&貫通スクリプト（高度な回避、ドラッグ機能、背景＆ボタンデザイン）
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -7,6 +7,7 @@ local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player.PlayerGui
 
+-- スクリプト制御変数
 local isEnabled = false  -- ワープと貫通のオン/オフフラグ
 local warpHeight = 50  -- ワープの高さ（真上）
 local penetrationSpeed = 5  -- 貫通速度
@@ -87,29 +88,63 @@ local function teleportAndPenetrate()
     end
 end
 
--- 背景に作者名とタイトルを表示
+-- 背景に作者名とタイトルを表示（ハッカー風フォント）
 local function createBackgroundText()
     local backgroundText = Instance.new("TextLabel")
     backgroundText.Parent = screenGui
     backgroundText.Text = "daxhab | 作者名: dax"  -- 背景に表示するテキスト
-    backgroundText.TextSize = 40
-    backgroundText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    backgroundText.TextSize = 24
+    backgroundText.TextColor3 = Color3.fromRGB(0, 255, 0)  -- ハッカー風緑色
     backgroundText.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     backgroundText.BackgroundTransparency = 0.5  -- 背景を少し透過
     backgroundText.Position = UDim2.new(0.5, -150, 0, 0)  -- 上部に中央配置
     backgroundText.Size = UDim2.new(0, 300, 0, 50)
+    backgroundText.Font = Enum.Font.Code -- ハッカー風フォント
+    backgroundText.TextTransparency = 0.5
+
+    -- 背景テキストを流れるように設定
+    local tweenService = game:GetService("TweenService")
+    local tweenGoal = {Position = UDim2.new(0, -300, 0, 0)}
+    local tween = tweenService:Create(backgroundText, TweenInfo.new(5, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true), tweenGoal)
+    tween:Play()
 end
 
--- ボタンの作成
+-- ボタンの作成（ドラッグ可能で小さめのポップデザイン）
 local teleportButton = Instance.new("TextButton")
 teleportButton.Parent = screenGui
 teleportButton.Text = "ワープ＆貫通開始"
-teleportButton.TextSize = 20  -- フォントサイズを調整
-teleportButton.Size = UDim2.new(0, 200, 0, 50)
-teleportButton.Position = UDim2.new(0.5, -100, 0.6, 0)
+teleportButton.TextSize = 16
+teleportButton.Size = UDim2.new(0, 150, 0, 40)
+teleportButton.Position = UDim2.new(0.5, -75, 0.6, 0)
 teleportButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
 teleportButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+teleportButton.Font = Enum.Font.Code
 
+-- ドラッグ機能
+local dragToggle = nil
+local dragInput = nil
+local dragStartPos = nil
+
+teleportButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragToggle = true
+        dragStartPos = input.Position - teleportButton.Position.Offset
+    end
+end)
+
+teleportButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragToggle = false
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragToggle then
+        teleportButton.Position = UDim2.new(0, input.Position.X - dragStartPos.X, 0, input.Position.Y - dragStartPos.Y)
+    end
+end)
+
+-- ボタンのクリックイベント
 teleportButton.MouseButton1Click:Connect(function()
     -- ワープ＆貫通オン/オフの切り替え
     if isEnabled then
