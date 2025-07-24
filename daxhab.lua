@@ -1,109 +1,106 @@
--- ロブロックス 最強ワープスクリプト 完全版（修正版）
-
 local player = game.Players.LocalPlayer
-local Character = player.Character or player.CharacterAdded:Wait()
-local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
--- ワープ先の位置と速度
-local targetPosition = Vector3.new(0, 1000, 0)  -- 高さ1000にワープ
-local speed = 50  -- 高速移動の速度
-local warpChance = 0.999  -- ワープ成功率
+local playerHeight = 7.5 * 5  -- キャラの高さを7.5人分 (1人あたり5 studs)
+local moveSpeed = 0.05  -- 移動速度を遅くする（自然な動き）
+local movementDelay = 0.1  -- 移動後のディレイ
+local antiKickDelay = 1  -- アンチキックのための確認間隔
 
--- ワープボタンを作成
+-- 屋上と1階の座標を設定（例）
+local roofPosition = Vector3.new(0, 100, 0)  -- 屋上の位置
+local floorPosition = Vector3.new(0, 0, 0)   -- 1階の位置
+
+-- ランダムなオフセットを生成して、動きに自然さを加える
+local function getRandomOffset()
+    return Vector3.new(math.random(-1, 1), math.random(-1, 1), math.random(-1, 1)) * 0.5
+end
+
+-- スムーズな移動を行う関数（補間）
+local function smoothMove(targetPosition)
+    local currentPosition = humanoidRootPart.Position
+    local steps = 50  -- 移動を小刻みに行うためのステップ数
+    for i = 1, steps do
+        currentPosition = currentPosition:Lerp(targetPosition + getRandomOffset(), moveSpeed)
+        humanoidRootPart.CFrame = CFrame.new(currentPosition)
+        wait(movementDelay)
+    end
+end
+
+-- 移動後に座標補正やバグを防止するための処理を追加
+local function antiKickFix()
+    wait(antiKickDelay)
+    local targetPosition = humanoidRootPart.Position + Vector3.new(0, playerHeight, 0)
+    if (humanoidRootPart.Position - targetPosition).magnitude < 0.1 then
+        humanoidRootPart.CFrame = CFrame.new(targetPosition + Vector3.new(0, 0.1, 0))  -- 小さなズレを加えてリセット回避
+    end
+end
+
+-- UIにボタンを作成
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player.PlayerGui
 
-local warpButton = Instance.new("TextButton")
-warpButton.Size = UDim2.new(0, 200, 0, 50)  -- ボタンのサイズ
-warpButton.Position = UDim2.new(0.5, -100, 0.8, -25)  -- 画面中央下部に配置
-warpButton.Text = "ワープ"
-warpButton.Font = Enum.Font.GothamBold
-warpButton.TextSize = 30
-warpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-warpButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)  -- 初期色（赤）
+-- カラフルで可愛いボタンの作成
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 200, 0, 50)
+button.Position = UDim2.new(0.5, -100, 0.5, -25)
+button.Text = "屋上/1階 入れ替え"  -- ボタンにテキストを表示
+button.TextColor3 = Color3.fromRGB(255, 255, 255)  -- テキスト色を白に設定
+button.TextSize = 18  -- テキストのサイズ
+button.TextStrokeTransparency = 0.8  -- テキストにストロークを追加
+button.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)  -- ストローク色を黒に設定
 
--- ワープボタンの虹色エフェクト
-local function rainbowEffect()
-    local colors = {Color3.fromRGB(255, 0, 0), Color3.fromRGB(255, 255, 0), Color3.fromRGB(0, 255, 0), Color3.fromRGB(0, 255, 255), Color3.fromRGB(0, 0, 255), Color3.fromRGB(255, 0, 255)}
-    local i = 1
-    while true do
-        warpButton.BackgroundColor3 = colors[i]
-        i = i + 1
-        if i > #colors then
-            i = 1
+-- ボタンの背景にグラデーションを追加
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 100, 200)),  -- ピンク
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 100)),  -- 黄色
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 255, 255))   -- 水色
+})
+gradient.Parent = button
+
+button.Parent = screenGui
+
+-- 屋上と1階の入れ替え処理
+local function swapFloors()
+    -- プレイヤーが持っているオブジェクトをリスト化
+    local objectsToMove = {}
+    for _, obj in pairs(character:GetChildren()) do
+        if obj:IsA("BasePart") and obj.Parent == character then
+            table.insert(objectsToMove, obj)
         end
-        wait(0.5)
-    end
-end
-
--- ワープボタンを押したときの動作
-warpButton.MouseButton1Click:Connect(function()
-    executeWarp()  -- ワープを実行
-end)
-
--- ワープ実行関数
-local function executeWarp()
-    -- ワープ成功率チェック
-    if math.random() > warpChance then
-        warn("ワープに失敗しました。再試行します...")
-        return
     end
 
-    -- プレイヤーの位置を変更（ワープ処理）
-    local startPosition = HumanoidRootPart.Position
-    local currentPosition = startPosition
-
-    -- 上方向にワープして障害物を貫通
-    while currentPosition.Y < targetPosition.Y do
-        currentPosition = currentPosition + Vector3.new(0, speed, 0)
-        HumanoidRootPart.CFrame = CFrame.new(currentPosition)
-
-        -- Rayを使って天井などを検出し、貫通するようにする
-        local ray = Ray.new(currentPosition, Vector3.new(0, speed, 0))
-        local hit, position = game.Workspace:FindPartOnRay(ray, Character)
-
-        if hit then
-            print("天井を検出！次の位置にワープします...")
-        end
-
-        -- 少し待機してから次の位置にワープ
-        wait(0.1)
-    end
-
-    -- ワープ後、プレイヤーの位置が不適切なら補正する
-    local raycastResult = workspace:Raycast(targetPosition + Vector3.new(0, 5, 0), Vector3.new(0, -10, 0))
-    if raycastResult then
-        -- 地面を検出した場合、安全な位置に補正
-        local newPosition = raycastResult.Position + Vector3.new(0, 2, 0)  -- 地面から少し上に調整
-        HumanoidRootPart.CFrame = CFrame.new(newPosition)
+    -- 1階→屋上のワープ
+    if humanoidRootPart.Position.Y < 10 then  -- プレイヤーが1階にいる場合
+        smoothMove(roofPosition)  -- 屋上に移動
     else
-        -- 地面が見つからない場合、最初の位置に戻す
-        HumanoidRootPart.CFrame = CFrame.new(startPosition)
+        -- 屋上→1階のワープ
+        smoothMove(floorPosition)  -- 1階に移動
     end
 
-    print("ワープ完了！")
+    -- オブジェクトも一緒に移動させる
+    for _, obj in pairs(objectsToMove) do
+        obj.CFrame = humanoidRootPart.CFrame
+    end
+
+    -- パッチ回避: 不正アクセスを防ぐために動作をランダム化
+    antiKickFix()
+
+    -- 上にオブジェクトを生成（例: 部屋の中にブロックを生成）
+    local object = Instance.new("Part")
+    object.Size = Vector3.new(5, 5, 5)
+    object.Position = humanoidRootPart.Position + Vector3.new(0, 5, 0)
+    object.Anchored = true
+    object.Parent = workspace
 end
 
--- ボタンを画面に追加
-warpButton.Parent = screenGui
+button.MouseButton1Click:Connect(swapFloors)
 
--- ワープボタンの虹色エフェクトを開始
-coroutine.wrap(rainbowEffect)()
-
--- 回避ボタンを作成（別途回避機能が必要な場合）
-local bypassButton = Instance.new("TextButton")
-bypassButton.Size = UDim2.new(0, 200, 0, 50)
-bypassButton.Position = UDim2.new(0.5, -100, 0.9, -25)  -- 画面中央下部に配置
-bypassButton.Text = "回避"
-bypassButton.Font = Enum.Font.GothamBold
-bypassButton.TextSize = 30
-bypassButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-bypassButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- 初期色（緑）
-
--- 回避ボタンを押したときの動作
-bypassButton.MouseButton1Click:Connect(function()
-    -- 回避機能をここに追加
-    -- 例: activateAvoidance()
-end)
-
-bypassButton.Parent = screenGui
+-- 高度な対策強化のため、ランダムな位置変動と時間差での動作を繰り返す
+while true do
+    -- 監視を回避するために、少しずつ動かす
+    local randomOffset = getRandomOffset()
+    humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position + randomOffset)
+    wait(math.random(2, 5))  -- ランダムな待機時間
+end
