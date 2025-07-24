@@ -1,4 +1,4 @@
--- 完全無敵に近づけるリセット回避・監視回避・ワープ強化スクリプト
+-- 無敵95%強化版：リセット回避・監視回避・ワープ強化スクリプト
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -7,7 +7,7 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player.PlayerGui
 screenGui.Name = "GameUI"
 
--- UI背景（daxhab / 作者: dax）
+-- UI背景
 local background = Instance.new("Frame")
 background.Parent = screenGui
 background.Size = UDim2.new(0, 200, 0, 50)
@@ -27,7 +27,7 @@ titleLabel.TextStrokeTransparency = 0.8
 titleLabel.BackgroundTransparency = 1
 titleLabel.Font = Enum.Font.Gotham
 
--- ワープボタンUI
+-- ワープボタン
 local buttonWarp = Instance.new("TextButton")
 buttonWarp.Parent = background
 buttonWarp.Size = UDim2.new(1, 0, 0.7, 0)
@@ -39,7 +39,7 @@ buttonWarp.TextColor3 = Color3.fromRGB(0, 255, 255)
 buttonWarp.BorderSizePixel = 0
 buttonWarp.Font = Enum.Font.SourceSans
 
--- リセット回避ボタンUI
+-- リセット回避ボタン
 local buttonResetAvoid = Instance.new("TextButton")
 buttonResetAvoid.Parent = background
 buttonResetAvoid.Size = UDim2.new(1, 0, 0.7, 0)
@@ -139,3 +139,17 @@ end
 
 -- 絶対リセット回避
 enhancedResetAvoidance()
+
+-- タップイベントが反応しない場合の改善
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed then
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            -- ワープボタンを強制的にタップイベントに反応させる
+            if buttonWarp.Visible and buttonWarp:IsPointInRegion2D(input.Position) then
+                teleportPlayer()
+            elseif buttonResetAvoid.Visible and buttonResetAvoid:IsPointInRegion2D(input.Position) then
+                toggleResetAvoidance()
+            end
+        end
+    end
+end)
