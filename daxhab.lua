@@ -1,100 +1,103 @@
--- ✅ 完全版スクリプト（UI表示 + 真上ワープ + 天井貫通 + リセット回避 + 虹色UI + ドラッグ可能）
--- 🔧 LocalScriptで実行（StarterPlayerScripts推奨）
+-- ✅ daxhab/dax完全版ワープスクリプト（StarterPlayerScripts用 LocalScript）
 
-local player = game.Players.LocalPlayer
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
-repeat wait() until camera.ViewportSize.X > 0
+repeat wait() until camera and camera.ViewportSize.X > 0
 
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
--- GUI作成
-local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screenGui.Name = "DaxhabUI"
-screenGui.ResetOnSpawn = false
-
-local button = Instance.new("TextButton")
-button.Parent = screenGui
-button.Name = "WarpButton"
-button.Text = "daxhab/作者dax"
-button.Size = UDim2.new(0.125, 0, 0.125, 0)
-button.Position = UDim2.new(0.4375, 0, 0.4375, 0)
-button.BackgroundTransparency = 0
-button.TextColor3 = Color3.new(1, 1, 1)
-button.TextSize = 20
-button.Font = Enum.Font.GothamBold
-button.BorderSizePixel = 0
-
--- 虹色背景
-local gradient = Instance.new("UIGradient")
-gradient.Rotation = 90
-gradient.Color = ColorSequence.new{
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,0)),
-	ColorSequenceKeypoint.new(0.15, Color3.fromRGB(255,165,0)),
-	ColorSequenceKeypoint.new(0.3, Color3.fromRGB(255,255,0)),
-	ColorSequenceKeypoint.new(0.45, Color3.fromRGB(0,255,0)),
-	ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0,0,255)),
-	ColorSequenceKeypoint.new(0.75, Color3.fromRGB(75,0,130)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(238,130,238))
-}
-gradient.Parent = button
-
--- ドラッグ処理
-local dragging, offset
-button.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		offset = input.Position - button.AbsolutePosition
-	end
-end)
-
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-		local newPos = input.Position - offset
-		button.Position = UDim2.new(0, newPos.X, 0, newPos.Y)
-	end
-end)
-
-game:GetService("UserInputService").InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-	end
-end)
-
--- 天井貫通ワープ
-local function warpUpThroughCeiling()
-	local maxSteps = 100
-	local step = 0
-	while step < maxSteps do
-		local ray = workspace:Raycast(rootPart.Position, Vector3.new(0, 10, 0))
-		if ray then break end
-		rootPart.CFrame = rootPart.CFrame + Vector3.new(0, 10, 0)
-		step += 1
-		wait(0.05)
-	end
+local function getCharacter()
+	local char = player.Character or player.CharacterAdded:Wait()
+	return char, char:WaitForChild("Humanoid"), char:WaitForChild("HumanoidRootPart")
 end
 
--- リセット回避用位置補正
-spawn(function()
-	while true do
-		if rootPart.Position.Y < -50 then
-			rootPart.CFrame = rootPart.CFrame + Vector3.new(0, 100, 0)
-		end
-		wait(0.2)
-	end
-end)
+-- UI作成
+local function createButton()
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "DaxhabUI"
+	screenGui.Parent = player:WaitForChild("PlayerGui")
+	screenGui.ResetOnSpawn = false
 
--- 物理無効化
-local function disablePhysics()
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0.125, 0, 0.125, 0)
+	button.Position = UDim2.new(0.4375, 0, 0.4375, 0)
+	button.Text = "ワープ"
+	button.Font = Enum.Font.GothamBold
+	button.TextSize = 20
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.BackgroundTransparency = 0
+	button.BorderSizePixel = 0
+	button.ZIndex = 2
+	button.Parent = screenGui
+
+	-- 背景画像（daxhab/dax）
+	local bgImage = Instance.new("ImageLabel")
+	bgImage.Size = UDim2.new(1, 0, 1, 0)
+	bgImage.Position = UDim2.new(0, 0, 0, 0)
+	bgImage.BackgroundTransparency = 1
+	bgImage.Image = "rbxassetid://INSERT_IMAGE_ID_HERE" -- 差し替え必要
+	bgImage.ZIndex = 1
+	bgImage.Parent = button
+
+	-- 虹色グラデーション
+	local gradient = Instance.new("UIGradient")
+	gradient.Rotation = 90
+	gradient.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,0)),
+		ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255,165,0)),
+		ColorSequenceKeypoint.new(0.4, Color3.fromRGB(255,255,0)),
+		ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0,255,0)),
+		ColorSequenceKeypoint.new(0.8, Color3.fromRGB(0,0,255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(255,0,255))
+	}
+	gradient.Parent = button
+
+	-- ドラッグ可能処理
+	local dragging = false
+	local offset = Vector2.new()
+
+	button.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			offset = input.Position - button.AbsolutePosition
+		end
+	end)
+
+	UIS.InputChanged:Connect(function(input)
+		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+			local newPos = input.Position - offset
+			button.Position = UDim2.new(0, newPos.X, 0, newPos.Y)
+		end
+	end)
+
+	UIS.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = false
+		end
+	end)
+
+	return button
+end
+
+-- 天井がなくなるまで上昇ワープ
+local function warpUp()
+	local char, humanoid, rootPart = getCharacter()
 	humanoid.PlatformStand = true
 	rootPart.CanCollide = false
+	rootPart.Anchored = false
+	rootPart.CFrame = rootPart.CFrame + Vector3.new(0, 5, 0)
+
+	local maxSteps = 150
+	for i = 1, maxSteps do
+		local ray = workspace:Raycast(rootPart.Position, Vector3.new(0, 10, 0), RaycastParams.new())
+		if ray then break end
+		rootPart.CFrame = rootPart.CFrame + Vector3.new(0, 10, 0)
+		wait(0.01)
+	end
+
+	wait(0.2)
+	humanoid.PlatformStand = false
 end
 
--- ボタンクリック時の処理
-button.MouseButton1Click:Connect(function()
-	disablePhysics()
-	warpUpThroughCeiling()
-end)
-
-print("✅ 完全版スクリプト初期化完了")
+-- リセット回避：座標が下がったら戻す
+local function startAntiRes
