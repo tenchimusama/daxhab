@@ -1,167 +1,134 @@
--- 完全版：一瞬15スタッド真上ワープ＋海外式運営対策内蔵 UIドラッグ対応＋ログ＋効果音
-
+--!strict
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- ScreenGui
+-- UI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DaxhabUI"
-screenGui.Parent = playerGui
-screenGui.IgnoreGuiInset = true
 screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = playerGui
 
--- 背景フレーム（ドラッグ可能）
-local bg = Instance.new("Frame")
-bg.BackgroundColor3 = Color3.new(0,0,0)
-bg.BackgroundTransparency = 0
-bg.Size = UDim2.new(0.33,0,0.5,0)
-bg.Position = UDim2.new(0.02,0,0.48,0)
-bg.BorderSizePixel = 1
-bg.BorderColor3 = Color3.fromRGB(0,255,0)
-bg.Active = true
-bg.Draggable = true
-bg.Parent = screenGui
+-- メインパネル
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0.33, 0, 0.4, 0)
+mainFrame.Position = UDim2.new(0.33, 0, 0.55, 0)
+mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
 
--- ロゴテキスト
-local floatingText = Instance.new("TextLabel")
-floatingText.Text = "daxhab / by / dax"
-floatingText.TextColor3 = Color3.fromRGB(0,255,0)
-floatingText.BackgroundTransparency = 1
-floatingText.Font = Enum.Font.Code
-floatingText.TextScaled = true
-floatingText.Size = UDim2.new(1,0,0.12,0)
-floatingText.Position = UDim2.new(0,0,0.02,0)
-floatingText.Parent = bg
+-- ロゴ
+local logo = Instance.new("TextLabel")
+logo.Size = UDim2.new(1, 0, 0.2, 0)
+logo.Position = UDim2.new(0, 0, 0, 0)
+logo.BackgroundTransparency = 1
+logo.TextColor3 = Color3.new(0, 1, 0)
+logo.Font = Enum.Font.Code
+logo.TextScaled = true
+logo.Text = ""
+logo.Parent = mainFrame
 
--- ログスクロールフレーム
-local logFrame = Instance.new("ScrollingFrame")
-logFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
-logFrame.BackgroundTransparency = 0
-logFrame.Size = UDim2.new(0.95,0,0.6,0)
-logFrame.Position = UDim2.new(0.025,0,0.3,0)
-logFrame.BorderSizePixel = 0
-logFrame.ScrollBarThickness = 6
-logFrame.CanvasSize = UDim2.new(0,0,5,0)
-logFrame.Parent = bg
+-- ログウィンドウ
+local logBox = Instance.new("TextLabel")
+logBox.Size = UDim2.new(1, -10, 0.5, -10)
+logBox.Position = UDim2.new(0, 5, 0.2, 5)
+logBox.BackgroundColor3 = Color3.new(0, 0, 0)
+logBox.TextColor3 = Color3.new(0, 1, 0)
+logBox.Font = Enum.Font.Code
+logBox.TextXAlignment = Enum.TextXAlignment.Left
+logBox.TextYAlignment = Enum.TextYAlignment.Top
+logBox.TextSize = 14
+logBox.TextWrapped = true
+logBox.Text = ""  -- 初期ログ
+logBox.ClipsDescendants = true
+logBox.Parent = mainFrame
 
-local uiListLayout = Instance.new("UIListLayout")
-uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-uiListLayout.Padding = UDim.new(0,2)
-uiListLayout.Parent = logFrame
+-- ボタン
+local warpButton = Instance.new("TextButton")
+warpButton.Size = UDim2.new(1, -20, 0.15, 0)
+warpButton.Position = UDim2.new(0, 10, 0.75, 0)
+warpButton.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+warpButton.TextColor3 = Color3.new(0, 1, 0)
+warpButton.Font = Enum.Font.Code
+warpButton.TextScaled = true
+warpButton.Text = "[ WARP / 25↑ ]"
+warpButton.Parent = mainFrame
 
-local function addLog(message)
-    local newLabel = Instance.new("TextLabel")
-    newLabel.BackgroundTransparency = 1
-    newLabel.TextColor3 = Color3.fromRGB(0,255,0)
-    newLabel.Font = Enum.Font.Code
-    newLabel.TextSize = 16
-    newLabel.TextWrapped = true
-    newLabel.Size = UDim2.new(1,0,0,20)
-    newLabel.Text = ""
-    newLabel.Parent = logFrame
+-- ロゴアニメーション
+local function animateLogo(text)
+	logo.Text = ""
+	coroutine.wrap(function()
+		for i = 1, #text do
+			logo.Text = string.sub(text, 1, i)
+			wait(0.04)
+		end
+	end)()
+end
+animateLogo("daxhab / by / dax")
 
-    coroutine.wrap(function()
-        for i = 1, #message do
-            newLabel.Text = string.sub(message, 1, i)
-            wait(0.02)
-        end
-        logFrame.CanvasPosition = Vector2.new(0, logFrame.CanvasSize.Y.Offset)
-    end)()
+-- ログ追加
+local function addLog(text)
+	logBox.Text = logBox.Text .. "\n> " .. text
 end
 
--- ボタン作成関数
-local function createButton(text, posY)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.6,0,0.12,0)
-    btn.Position = UDim2.new(0.2,0,posY,0)
-    btn.BackgroundColor3 = Color3.fromRGB(0,120,0)
-    btn.TextColor3 = Color3.fromRGB(0,255,0)
-    btn.Font = Enum.Font.Code
-    btn.TextScaled = true
-    btn.Text = text
-    btn.Parent = bg
-    btn.AutoButtonColor = false
-    return btn
-end
-
-local warpBtn = createButton("ワープ", 0.75) -- 画面下寄りに配置
-
--- 効果音
-local beep = Instance.new("Sound")
-beep.SoundId = "rbxassetid://911882487"
-beep.Volume = 0.25
-beep.Parent = bg
-local function playBeep()
-    beep:Play()
-end
-
--- ネットワーク所有権取得＆運営対策系関数 --
-
+-- ネットワーク所有権取得
 local function setNetworkOwner(part)
-    pcall(function()
-        part:SetNetworkOwner(player)
-    end)
+	pcall(function()
+		part:SetNetworkOwner(player)
+	end)
 end
 
-local function preventReset(character)
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-        humanoid.HealthChanged:Connect(function(health)
-            if health <= 0 then
-                humanoid.Health = humanoid.MaxHealth
-                addLog("自動復活処理実行")
-            end
-        end)
-    end
-end
-
-local function antiFallKillProtection(character)
-    -- 落下死防止等にカスタマイズ可
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        RunService.Heartbeat:Connect(function()
-            if humanoid.Health > 0 and humanoid.FloorMaterial == Enum.Material.Air and humanoid:GetState() == Enum.HumanoidStateType.Freefall then
-                -- 落下中の高さチェック、条件により回避行動等をここに追加可能
-            end
-        end)
-    end
-end
-
--- 安全ワープ関数（一瞬で15スタッド真上に瞬間移動）
+-- ワープ処理
 local function safeWarp()
-    local character = player.Character or player.CharacterAdded:Wait()
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if not root then
-        addLog("RootPartが見つかりません。ワープ中止。")
-        return
-    end
+	local character = player.Character or player.CharacterAdded:Wait()
+	local root = character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not root or not humanoid then
+		addLog("キャラクターの主要パーツが見つかりません")
+		return
+	end
 
-    addLog("ワープ実行中...")
-    playBeep()
+	addLog("ワープ中...")
 
-    setNetworkOwner(root)
-    preventReset(character)
-    antiFallKillProtection(character)
+	setNetworkOwner(root)
+	
+	local targetCFrame = root.CFrame + Vector3.new(0, 25, 0)
+	
+	-- 状態変更で落下状態を回避
+	humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+	root.Velocity = Vector3.zero
+	root.RotVelocity = Vector3.zero
+	
+	-- 強制位置移動
+	root.CFrame = targetCFrame
 
-    -- 一瞬で15スタッド上に瞬間移動
-    root.CFrame = root.CFrame + Vector3.new(0, 15, 0)
+	-- サーバー同期回避：位置補正6秒間継続（より強化）
+	local startTime = tick()
+	local heartbeatConn
+	heartbeatConn = RunService.Heartbeat:Connect(function()
+		if tick() - startTime > 6 then
+			heartbeatConn:Disconnect()
+			return
+		end
+		if root and root.Parent then
+			local dist = (root.Position - targetCFrame.Position).Magnitude
+			if dist > 0.25 then
+				root.CFrame = targetCFrame
+				root.Velocity = Vector3.zero
+				root.RotVelocity = Vector3.zero
+				setNetworkOwner(root)
+			end
+		end
+	end)
 
-    addLog("ワープ成功！")
+	addLog("ワープ成功（25スタッド上）")
 end
 
-warpBtn.MouseButton1Click:Connect(safeWarp)
-
--- 浮遊ロゴアニメーション
-spawn(function()
-    while true do
-        floatingText.Position = UDim2.new(0, 0, 0.02 + 0.02 * math.sin(tick() * 3), 0)
-        wait(0.03)
-    end
-end)
-
-addLog("daxhab 起動完了")
+-- ボタンイベント
+warpButton.MouseButton1Click:Connect(safeWarp)
