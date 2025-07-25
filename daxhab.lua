@@ -24,18 +24,41 @@ mainFrame.Active = true
 mainFrame.Draggable = true
 mainFrame.Parent = screenGui
 
+-- UI折りたたみボタン
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0.1, 0, 0.08, 0)
+toggleButton.Position = UDim2.new(0.9, -10, 0, 10)
+toggleButton.Text = "✕"
+toggleButton.TextColor3 = Color3.new(0, 1, 0)
+toggleButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+toggleButton.Font = Enum.Font.Code
+toggleButton.TextScaled = true
+toggleButton.Parent = mainFrame
+
+local isVisible = true
+toggleButton.MouseButton1Click:Connect(function()
+	isVisible = not isVisible
+	for _, child in pairs(mainFrame:GetChildren()) do
+		if child ~= toggleButton then
+			child.Visible = isVisible
+		end
+	toggleButton.Text = isVisible and "✕" or "≡"
+end)
+
 -- ロゴ
 local logo = Instance.new("TextLabel")
 logo.Size = UDim2.new(1, 0, 0.2, 0)
 logo.Position = UDim2.new(0, 0, 0, 0)
 logo.BackgroundTransparency = 1
-logo.TextColor3 = Color3.new(0, 1, 0)
+logo.TextColor3 = Color3.fromRGB(0, 255, 0)
 logo.Font = Enum.Font.Code
 logo.TextScaled = true
 logo.Text = ""
+logo.TextStrokeTransparency = 0.4
+logo.TextStrokeColor3 = Color3.new(0, 0.5, 0)
 logo.Parent = mainFrame
 
--- ロゴアニメーション強化版
+-- ロゴアニメーション（3D風に）
 local function animateLogoFancy(text)
 	logo.Text = ""
 	coroutine.wrap(function()
@@ -43,8 +66,9 @@ local function animateLogoFancy(text)
 			local char = string.sub(text, i, i)
 			logo.Text = logo.Text .. char
 			logo.TextColor3 = Color3.fromHSV(tick() % 5 / 5, 1, 1)
-			logo.TextStrokeTransparency = 0.6
-			logo.TextStrokeColor3 = Color3.new(0, 0, 0)
+			logo.TextStrokeTransparency = 0
+			logo.TextStrokeColor3 = Color3.fromRGB(20, 255, 20)
+			logo.TextSize = 36 + math.sin(i + tick() * 10) * 2
 			wait(0.04)
 		end
 	end)()
@@ -79,6 +103,17 @@ heightInput.Font = Enum.Font.Code
 heightInput.ClearTextOnFocus = false
 heightInput.Parent = mainFrame
 
+-- 現在のスタッド表示
+local currentHeight = Instance.new("TextLabel")
+currentHeight.Size = UDim2.new(0.3, 0, 0.12, 0)
+currentHeight.Position = UDim2.new(0.68, 0, 0.77, 0)
+currentHeight.BackgroundTransparency = 1
+currentHeight.TextColor3 = Color3.new(0, 1, 0)
+currentHeight.Font = Enum.Font.Code
+currentHeight.TextScaled = true
+currentHeight.Text = "↑: 40"
+currentHeight.Parent = mainFrame
+
 -- ボタン
 local warpButton = Instance.new("TextButton")
 warpButton.Size = UDim2.new(0.65, 0, 0.15, 0)
@@ -89,6 +124,17 @@ warpButton.Font = Enum.Font.Code
 warpButton.TextScaled = true
 warpButton.Text = "[ WARP ↑ ]"
 warpButton.Parent = mainFrame
+
+-- アニメーション追加
+local function animateButton(btn)
+	TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
+		BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+	}):Play()
+	wait(0.2)
+	TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
+		BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	}):Play()
+end
 
 -- ログ追加
 local function addLog(text)
@@ -114,15 +160,13 @@ local function safeWarp()
 		addLog("キャラクターの主要パーツが見つかりません")
 		return
 	end
-
 	local height = tonumber(heightInput.Text)
 	if not height then
 		addLog("無効なスタッド数")
 		return
 	end
-
+	currentHeight.Text = "↑: " .. tostring(height)
 	addLog("ワープ中... (↑" .. tostring(height) .. " stud)")
-
 	setNetworkOwner(root)
 	local offset = Vector3.new(0, height, 0)
 	local origin = root.Position
@@ -131,7 +175,6 @@ local function safeWarp()
 	rayParams.FilterDescendantsInstances = {character}
 	rayParams.FilterType = Enum.RaycastFilterType.Blacklist
 	local rayResult = workspace:Raycast(origin, direction, rayParams)
-
 	local targetCFrame
 	if rayResult then
 		targetCFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
@@ -139,16 +182,15 @@ local function safeWarp()
 	else
 		targetCFrame = root.CFrame + offset
 	end
-
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, false)
+	humanoid:ChangeState(Enum.HumanoidStateType.Physics)
 	humanoid.AutoRotate = true
 	root.Anchored = false
 	root.Velocity = Vector3.zero
 	root.RotVelocity = Vector3.zero
 	setNetworkOwner(root)
 	root.CFrame = targetCFrame
-
 	local startTime = tick()
 	local heartbeatConn
 	heartbeatConn = RunService.Heartbeat:Connect(function()
@@ -160,12 +202,17 @@ local function safeWarp()
 			root.Velocity = Vector3.zero
 			root.RotVelocity = Vector3.zero
 			root.CFrame = targetCFrame
+			humanoid.PlatformStand = false
+			humanoid.Sit = false
+			humanoid:ChangeState(Enum.HumanoidStateType.Physics)
 			setNetworkOwner(root)
 		end
 	end)
-
 	addLog("ワープ成功（↑" .. tostring(height) .. " stud）")
 end
 
 -- ボタンイベント
-warpButton.MouseButton1Click:Connect(safeWarp)
+warpButton.MouseButton1Click:Connect(function()
+	animateButton(warpButton)
+	safeWarp()
+end)
