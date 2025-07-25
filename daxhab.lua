@@ -1,43 +1,45 @@
--- Daxhab 完全版ブレインロット向けスマホ対応ワープ＆保護＋巻き戻し補正
-
+-- Daxhab Compact 強化版ワープ＆リセット回避スクリプト
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- ==== GUIセットアップ ====
+-- ==== GUIセットアップ（画面の約9分の1サイズ、縦横0.33ずつ） ====
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "DaxhabUI"
+screenGui.Name = "DaxhabCompactUI"
 screenGui.Parent = playerGui
 screenGui.IgnoreGuiInset = true
 screenGui.ResetOnSpawn = false
 
--- 背景
 local bg = Instance.new("Frame")
 bg.BackgroundColor3 = Color3.fromRGB(0,0,0)
-bg.Size = UDim2.new(1,0,1,0)
+bg.BackgroundTransparency = 0.8
+bg.Size = UDim2.new(0.33, 0, 0.33, 0)
+bg.Position = UDim2.new(0.02, 0, 0.65, 0)
+bg.BorderSizePixel = 1
+bg.BorderColor3 = Color3.fromRGB(0,255,0)
 bg.Parent = screenGui
 
--- 浮遊ロゴ
+-- 浮遊ロゴ（小さく）
 local floatingText = Instance.new("TextLabel")
 floatingText.Text = "daxhab / by / dax"
 floatingText.TextColor3 = Color3.fromRGB(0,255,0)
 floatingText.BackgroundTransparency = 1
 floatingText.Font = Enum.Font.Code
 floatingText.TextScaled = true
-floatingText.Size = UDim2.new(0.6,0,0.1,0)
-floatingText.Position = UDim2.new(0.2,0,0.02,0)
+floatingText.Size = UDim2.new(1,0,0.12,0)
+floatingText.Position = UDim2.new(0,0,0.02,0)
 floatingText.Parent = bg
 
 -- ログフレーム
 local logFrame = Instance.new("Frame")
 logFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
-logFrame.BackgroundTransparency = 0.6
-logFrame.Size = UDim2.new(0.9,0,0.15,0)
-logFrame.Position = UDim2.new(0.05,0,0.75,0)
+logFrame.BackgroundTransparency = 0.7
+logFrame.Size = UDim2.new(0.95,0,0.3,0)
+logFrame.Position = UDim2.new(0.025,0,0.65,0)
+logFrame.BorderSizePixel = 0
 logFrame.Parent = bg
 
 local logText = Instance.new("TextLabel")
@@ -52,11 +54,11 @@ logText.Position = UDim2.new(0,5,0,0)
 logText.Text = ""
 logText.Parent = logFrame
 
--- ボタン共通設定関数
-local function createButton(text, posX)
+-- ボタン作成関数（小さめで押しやすく）
+local function createButton(text, posY)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 160, 0, 70)
-    btn.Position = UDim2.new(posX, 0, 0.85, 0)
+    btn.Size = UDim2.new(0.9, 0, 0.15, 0)
+    btn.Position = UDim2.new(0.05, 0, posY, 0)
     btn.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
     btn.TextColor3 = Color3.fromRGB(0, 255, 0)
     btn.Font = Enum.Font.Code
@@ -68,7 +70,7 @@ local function createButton(text, posX)
     return btn
 end
 
-local warpBtn = createButton("ワープ", 0.1)
+local warpBtn = createButton("ワープ", 0.4)
 local protectBtn = createButton("保護OFF", 0.6)
 protectBtn.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
 protectBtn.TextColor3 = Color3.fromRGB(255, 0, 0)
@@ -83,7 +85,7 @@ local function playBeep()
     beep:Play()
 end
 
--- ログ追加関数（タイプライター風）
+-- ログ追加（タイプライター風アニメ）
 local logQueue = {}
 local isLogging = false
 local function addLog(message)
@@ -117,10 +119,23 @@ local function enableProtection(character)
         if part:IsA("BasePart") then
             part.CanCollide = false
             part.Transparency = 0.7
+            -- RootPartはアンカーして物理無効化強化
+            if part.Name == "HumanoidRootPart" then
+                part.Anchored = true
+            end
         end
     end
-    if character:FindFirstChild("Humanoid") then
-        character.Humanoid.ResetOnDeath = false
+    local humanoid = character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.ResetOnDeath = false
+        -- Diedイベントを無効化（海外スクリプト技術）
+        humanoid.Died:Connect(function()
+            wait(0.1)
+            if humanoid.Health <= 0 then
+                humanoid.Health = humanoid.MaxHealth
+                addLog("Diedイベント回避")
+            end
+        end)
     end
 end
 
@@ -129,15 +144,19 @@ local function disableProtection(character)
         if part:IsA("BasePart") then
             part.CanCollide = true
             part.Transparency = 0
+            if part.Name == "HumanoidRootPart" then
+                part.Anchored = false
+            end
         end
     end
-    if character:FindFirstChild("Humanoid") then
-        character.Humanoid.ResetOnDeath = true
+    local humanoid = character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.ResetOnDeath = true
     end
 end
 
--- 巻き戻し対策用ワープ補正ループ
-local warpCorrectionDuration = 2 -- 秒数（2秒間補正）
+-- 巻き戻し補正（2秒間）
+local warpCorrectionDuration = 2
 local warpCorrectionActive = false
 local lastTargetCFrame = nil
 
@@ -145,7 +164,6 @@ local function startWarpCorrection(rootPart, targetCFrame)
     warpCorrectionActive = true
     lastTargetCFrame = targetCFrame
     local startTime = tick()
-
     local connection
     connection = RunService.Heartbeat:Connect(function()
         if tick() - startTime > warpCorrectionDuration then
@@ -153,9 +171,7 @@ local function startWarpCorrection(rootPart, targetCFrame)
             connection:Disconnect()
             return
         end
-
         if rootPart and rootPart.Parent then
-            -- 位置が戻されてたら強制補正
             local dist = (rootPart.CFrame.p - lastTargetCFrame.p).Magnitude
             if dist > 1 then
                 rootPart.CFrame = lastTargetCFrame
@@ -167,7 +183,7 @@ local function startWarpCorrection(rootPart, targetCFrame)
     end)
 end
 
--- 強化ワープ処理
+-- 超強化ワープ処理
 local function safeWarp()
     local character = player.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") then
@@ -178,10 +194,8 @@ local function safeWarp()
 
     addLog("ワープ開始...")
 
-    -- ネットワーク所有権奪取
     setNetworkOwnership(root)
 
-    -- 保護ONならCollision無効・透明化
     if protectEnabled then
         enableProtection(character)
     end
@@ -194,10 +208,8 @@ local function safeWarp()
     tween:Play()
     tween.Completed:Wait()
 
-    -- 巻き戻し補正開始
     startWarpCorrection(root, targetCFrame)
 
-    -- 保護ONなら透明度解除・Collision復活（わずかに遅延させて検知逃れ）
     if protectEnabled then
         wait(0.15)
         disableProtection(character)
@@ -228,13 +240,13 @@ protectBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ロゴ浮遊アニメーション
+-- 浮遊ロゴアニメーション
 spawn(function()
     while true do
-        floatingText.Position = UDim2.new(0.2, 0, 0.02 + 0.02 * math.sin(tick()*3), 0)
+        floatingText.Position = UDim2.new(0, 0, 0.02 + 0.02 * math.sin(tick() * 3), 0)
         wait(0.03)
     end
 end)
 
--- 初期ログ
+-- 起動ログ
 addLog("daxhab 起動完了")
