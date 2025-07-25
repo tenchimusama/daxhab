@@ -1,4 +1,3 @@
---!strict
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -27,9 +26,9 @@ screenGui.Parent = playerGui
 
 -- メインフレーム（ドラッグ対応）
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0.35,0,0.45,0)
-mainFrame.Position = UDim2.new(0.33,0,0.5,0)
-mainFrame.BackgroundColor3 = Color3.new(0,0,0)
+mainFrame.Size = UDim2.new(0.35, 0, 0.45, 0)
+mainFrame.Position = UDim2.new(0.33, 0, 0.5, 0)
+mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Parent = screenGui
@@ -54,31 +53,32 @@ end)
 RunService.RenderStepped:Connect(function()
     if dragging and dragInput then
         local delta = dragInput.Position - dragStart
-        mainFrame.Position = UDim2.new(startPos.X.Scale,startPos.X.Offset + delta.X,startPos.Y.Scale,startPos.Y.Offset + delta.Y)
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
 
--- 3Dロゴ作成
+-- 背景に「daxhab/by/dax」を収めるロゴ作成
 local logoText = "< daxhab / by / dax >"
 local logoHolder = Instance.new("Frame")
-logoHolder.Size = UDim2.new(1,0,0.2,0)
-logoHolder.Position = UDim2.new(0,0,0,0)
+logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
+logoHolder.Position = UDim2.new(0, 0, 0, 0)
 logoHolder.BackgroundTransparency = 1
 logoHolder.Parent = mainFrame
 
 local logoLabels = {}
+local labelWidth = 15  -- 文字幅調整
 
 for i = 1, #logoText do
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(0, 15, 1, 0)
-    lbl.Position = UDim2.new(0, 15*(i-1), 0, 0)
+    lbl.Size = UDim2.new(0, labelWidth, 1, 0)
+    lbl.Position = UDim2.new(0, labelWidth * (i - 1), 0, 0)
     lbl.BackgroundTransparency = 1
     lbl.Font = Enum.Font.Code
     lbl.TextScaled = true
-    lbl.Text = logoText:sub(i,i)
+    lbl.Text = logoText:sub(i, i)
     lbl.TextStrokeTransparency = 0
-    lbl.TextStrokeColor3 = Color3.new(0,1,0)
-    lbl.TextColor3 = Color3.fromHSV((tick()*0.2 + i*0.05)%1,1,1)
+    lbl.TextStrokeColor3 = Color3.new(0, 1, 0)
+    lbl.TextColor3 = Color3.fromHSV((tick() * 0.2 + i * 0.05) % 1, 1, 1)
     lbl.Parent = logoHolder
     table.insert(logoLabels, lbl)
 end
@@ -86,9 +86,9 @@ end
 -- 3D風アニメーション
 RunService.RenderStepped:Connect(function()
     for i, lbl in ipairs(logoLabels) do
-        local offset = math.sin(tick()*10 + i)*5
-        lbl.Position = UDim2.new(0, 15*(i-1), 0, offset)
-        lbl.TextColor3 = Color3.fromHSV((tick()*0.3 + i*0.07)%1, 1, 1)
+        local offset = math.sin(tick() * 10 + i) * 5
+        lbl.Position = UDim2.new(0, labelWidth * (i - 1), 0, offset)
+        lbl.TextColor3 = Color3.fromHSV((tick() * 0.3 + i * 0.07) % 1, 1, 1)
         lbl.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
     end
 end)
@@ -152,7 +152,7 @@ warpButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 warpButton.TextColor3 = Color3.fromRGB(0, 255, 0)
 warpButton.Font = Enum.Font.Code
 warpButton.TextScaled = true
-warpButton.Text = "[ WARP ↑ ]"
+warpButton.Text = "[ MOVE ↑ ]"
 warpButton.Parent = mainFrame
 
 -- ワープ時のビープ音（軽量サウンド）
@@ -172,13 +172,8 @@ local function animateButton(btn)
     }):Play()
 end
 
-local function setNetworkOwner(part)
-    pcall(function()
-        part:SetNetworkOwner(player)
-    end)
-end
-
-local function safeWarp()
+-- 座標変更実行関数
+local function safeMove()
     local character = player.Character or player.CharacterAdded:Wait()
     local root = character:FindFirstChild("HumanoidRootPart")
     local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -192,74 +187,45 @@ local function safeWarp()
         return
     end
     currentHeight.Text = "↑: "..tostring(height)
-    addLog("ワープ中... (↑"..tostring(height).." stud)")
+    addLog("座標変更中... (↑"..tostring(height).." stud)")
 
-    -- ワープ前に無敵モード的に物理判定＆透明化OFF
+    -- 座標変更対策
+    -- プレイヤーの位置を設定する前に、物理挙動を一時的に停止
     for _, part in ipairs(character:GetChildren()) do
         if part:IsA("BasePart") then
-            part.CanCollide = false
-            part.Transparency = 0.6
+            part.CanCollide = false    -- 衝突判定を無効化
+            part.Anchored = true       -- 一時的に固定（動かないように）
+            part.Transparency = 0.6    -- 透明化
         end
     end
 
-    -- ワープ前に1.5スタッド浮上
-    root.CFrame = root.CFrame + Vector3.new(0,1.5,0)
-
-    local offset = Vector3.new(0, height, 0)
-    local rayParams = RaycastParams.new()
-    rayParams.FilterDescendantsInstances = {character}
-    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-    local rayResult = workspace:Raycast(root.Position, offset, rayParams)
-
-    local targetCFrame
-    if rayResult then
-        targetCFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
-        addLog("障害物検知、貫通位置に調整")
-    else
-        targetCFrame = root.CFrame + offset
+    -- ネットワーク所有権を変更（サーバーによる移動検出を回避）
+    local function setNetworkOwner(part)
+        pcall(function()
+            part:SetNetworkOwner(player)
+        end)
     end
 
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated,false)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding,false)
-    humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-    humanoid.AutoRotate = true
-    humanoid.PlatformStand = false
-    humanoid.Sit = false
-
-    root.Anchored = false
-    root.Velocity = Vector3.zero
-    root.RotVelocity = Vector3.zero
     setNetworkOwner(root)
-    root.CFrame = targetCFrame
 
-    local startTime = tick()
-    local conn
-    conn = RunService.Heartbeat:Connect(function()
-        if tick() - startTime > 6 then
-            conn:Disconnect()
-            -- ワープ後に物理判定・透明度を元に戻す
-            for _, part in ipairs(character:GetChildren()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = true
-                    part.Transparency = 0
-                end
-            end
-            return
+    -- 真上に指定された高さ分だけ移動（座標変更）
+    local newPosition = root.Position + Vector3.new(0, height, 0)
+    root.CFrame = CFrame.new(newPosition)
+
+    -- 座標変更後に物理挙動と透明度を元に戻す
+    task.wait(0.5)  -- 少し待機してから元に戻す
+    for _, part in ipairs(character:GetChildren()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = true   -- 衝突判定を再度有効化
+            part.Anchored = false    -- 固定を解除
+            part.Transparency = 0    -- 透明度を戻す
         end
-        if root and root.Parent then
-            root.Velocity = Vector3.zero
-            root.RotVelocity = Vector3.zero
-            root.CFrame = targetCFrame
-            humanoid.PlatformStand = false
-            humanoid.Sit = false
-            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-            setNetworkOwner(root)
-        end
-    end)
-    addLog("ワープ成功（↑"..tostring(height).." stud）")
+    end
+
+    addLog("座標変更成功（↑"..tostring(height).." stud）")
 end
 
 warpButton.MouseButton1Click:Connect(function()
     animateButton(warpButton)
-    safeWarp()
+    safeMove()
 end)
