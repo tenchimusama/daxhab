@@ -1,99 +1,240 @@
+-- Daxhab 完全版ブレインロット向けスマホ対応ワープ＆保護＋巻き戻し補正
+
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-local humanoid = character:FindFirstChildOfClass("Humanoid")
+local playerGui = player:WaitForChild("PlayerGui")
 
-local State = {
-    WarpInProgress = false,
-    HealthMonitorConn = nil,
-}
+-- ==== GUIセットアップ ====
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "DaxhabUI"
+screenGui.Parent = playerGui
+screenGui.IgnoreGuiInset = true
+screenGui.ResetOnSpawn = false
 
--- ネットワーク所有権をクライアントに強制付与
-local function claimNetworkOwnership()
-    for _, part in pairs(character:GetChildren()) do
-        if part:IsA("BasePart") then
-            part:SetNetworkOwner(player)
+-- 背景
+local bg = Instance.new("Frame")
+bg.BackgroundColor3 = Color3.fromRGB(0,0,0)
+bg.Size = UDim2.new(1,0,1,0)
+bg.Parent = screenGui
+
+-- 浮遊ロゴ
+local floatingText = Instance.new("TextLabel")
+floatingText.Text = "daxhab / by / dax"
+floatingText.TextColor3 = Color3.fromRGB(0,255,0)
+floatingText.BackgroundTransparency = 1
+floatingText.Font = Enum.Font.Code
+floatingText.TextScaled = true
+floatingText.Size = UDim2.new(0.6,0,0.1,0)
+floatingText.Position = UDim2.new(0.2,0,0.02,0)
+floatingText.Parent = bg
+
+-- ログフレーム
+local logFrame = Instance.new("Frame")
+logFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
+logFrame.BackgroundTransparency = 0.6
+logFrame.Size = UDim2.new(0.9,0,0.15,0)
+logFrame.Position = UDim2.new(0.05,0,0.75,0)
+logFrame.Parent = bg
+
+local logText = Instance.new("TextLabel")
+logText.BackgroundTransparency = 1
+logText.TextColor3 = Color3.fromRGB(0,255,0)
+logText.Font = Enum.Font.Code
+logText.TextWrapped = true
+logText.TextYAlignment = Enum.TextYAlignment.Top
+logText.TextXAlignment = Enum.TextXAlignment.Left
+logText.Size = UDim2.new(1,0,1,0)
+logText.Position = UDim2.new(0,5,0,0)
+logText.Text = ""
+logText.Parent = logFrame
+
+-- ボタン共通設定関数
+local function createButton(text, posX)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 160, 0, 70)
+    btn.Position = UDim2.new(posX, 0, 0.85, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
+    btn.TextColor3 = Color3.fromRGB(0, 255, 0)
+    btn.Font = Enum.Font.Code
+    btn.TextScaled = true
+    btn.Text = text
+    btn.Parent = bg
+    btn.AutoButtonColor = false
+    btn.ClipsDescendants = true
+    return btn
+end
+
+local warpBtn = createButton("ワープ", 0.1)
+local protectBtn = createButton("保護OFF", 0.6)
+protectBtn.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
+protectBtn.TextColor3 = Color3.fromRGB(255, 0, 0)
+
+-- ビープ音
+local beep = Instance.new("Sound")
+beep.SoundId = "rbxassetid://911882487"
+beep.Volume = 0.25
+beep.Parent = bg
+
+local function playBeep()
+    beep:Play()
+end
+
+-- ログ追加関数（タイプライター風）
+local logQueue = {}
+local isLogging = false
+local function addLog(message)
+    table.insert(logQueue, message)
+    if not isLogging then
+        isLogging = true
+        while #logQueue > 0 do
+            local msg = table.remove(logQueue, 1)
+            logText.Text = ""
+            for i = 1, #msg do
+                logText.Text = string.sub(msg,1,i)
+                wait(0.02)
+            end
+            wait(1.2)
         end
+        isLogging = false
     end
 end
 
--- 衝突無効化＆重量軽減で補正抑制
-local function disableCollision(enable)
+-- 保護状態管理
+local protectEnabled = false
+
+local function setNetworkOwnership(part)
+    pcall(function()
+        part:SetNetworkOwner(player)
+    end)
+end
+
+local function enableProtection(character)
     for _, part in pairs(character:GetChildren()) do
         if part:IsA("BasePart") then
-            part.CanCollide = not enable
-            part.Massless = enable
-            part.Transparency = enable and 0.4 or 0
+            part.CanCollide = false
+            part.Transparency = 0.7
         end
+    end
+    if character:FindFirstChild("Humanoid") then
+        character.Humanoid.ResetOnDeath = false
     end
 end
 
--- Tweenで滑らかにワープ
-local function tweenWarp(targetPos, duration)
-    duration = duration or 0.15
-    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local tween = TweenService:Create(rootPart, tweenInfo, {Position = targetPos})
-    tween:Play()
-    tween.Completed:Wait()
+local function disableProtection(character)
+    for _, part in pairs(character:GetChildren()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = true
+            part.Transparency = 0
+        end
+    end
+    if character:FindFirstChild("Humanoid") then
+        character.Humanoid.ResetOnDeath = true
+    end
 end
 
--- Health変化を監視し、死亡やリセットを99%防ぐ
-local function preventReset()
-    if State.HealthMonitorConn then State.HealthMonitorConn:Disconnect() end
-    State.HealthMonitorConn = humanoid.HealthChanged:Connect(function(health)
-        if health <= 0 then
-            humanoid.Health = 1
-            humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+-- 巻き戻し対策用ワープ補正ループ
+local warpCorrectionDuration = 2 -- 秒数（2秒間補正）
+local warpCorrectionActive = false
+local lastTargetCFrame = nil
+
+local function startWarpCorrection(rootPart, targetCFrame)
+    warpCorrectionActive = true
+    lastTargetCFrame = targetCFrame
+    local startTime = tick()
+
+    local connection
+    connection = RunService.Heartbeat:Connect(function()
+        if tick() - startTime > warpCorrectionDuration then
+            warpCorrectionActive = false
+            connection:Disconnect()
+            return
+        end
+
+        if rootPart and rootPart.Parent then
+            -- 位置が戻されてたら強制補正
+            local dist = (rootPart.CFrame.p - lastTargetCFrame.p).Magnitude
+            if dist > 1 then
+                rootPart.CFrame = lastTargetCFrame
+            end
+        else
+            warpCorrectionActive = false
+            connection:Disconnect()
         end
     end)
 end
 
--- 乱数を使って微妙に座標をずらす（対策強化用）
-local function jitterPosition(pos, maxOffset)
-    maxOffset = maxOffset or 0.2
-    local offsetX = (math.random() - 0.5) * 2 * maxOffset
-    local offsetZ = (math.random() - 0.5) * 2 * maxOffset
-    return Vector3.new(pos.X + offsetX, pos.Y, pos.Z + offsetZ)
-end
+-- 強化ワープ処理
+local function safeWarp()
+    local character = player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then
+        addLog("キャラ未ロード")
+        return
+    end
+    local root = character.HumanoidRootPart
 
--- 多段階ワープ＋ランダム遅延＋座標ジッター
-local function advancedWarp(height, steps)
-    if State.WarpInProgress then return end
-    State.WarpInProgress = true
+    addLog("ワープ開始...")
 
-    claimNetworkOwnership()
-    disableCollision(true)
-    preventReset()
+    -- ネットワーク所有権奪取
+    setNetworkOwnership(root)
 
-    local startPos = rootPart.Position
-    local targetPos = startPos + Vector3.new(0, height, 0)
-    local steps = steps or 10
-
-    for i = 1, steps do
-        local lerpPos = startPos:Lerp(targetPos, i / steps)
-        local jitteredPos = jitterPosition(lerpPos, 0.15) -- 微妙にズラす
-        tweenWarp(jitteredPos, 0.12)
-        wait(0.05 + math.random() * 0.07) -- ランダム遅延
+    -- 保護ONならCollision無効・透明化
+    if protectEnabled then
+        enableProtection(character)
     end
 
-    disableCollision(false)
-    State.WarpInProgress = false
+    local targetPos = root.Position + Vector3.new(0, 100, 0)
+    local targetCFrame = CFrame.new(targetPos)
+
+    local tweenInfo = TweenInfo.new(0.35, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(root, tweenInfo, {CFrame = targetCFrame})
+    tween:Play()
+    tween.Completed:Wait()
+
+    -- 巻き戻し補正開始
+    startWarpCorrection(root, targetCFrame)
+
+    -- 保護ONなら透明度解除・Collision復活（わずかに遅延させて検知逃れ）
+    if protectEnabled then
+        wait(0.15)
+        disableProtection(character)
+    end
+
+    addLog("ワープ成功！")
 end
 
--- リセット・補正時のキャラ再取得＆再設定
-RunService.Heartbeat:Connect(function()
-    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
-        character = player.Character or player.CharacterAdded:Wait()
-        rootPart = character:WaitForChild("HumanoidRootPart")
-        humanoid = character:FindFirstChildOfClass("Humanoid")
-        preventReset()
-        claimNetworkOwnership()
+-- ボタン処理
+warpBtn.MouseButton1Click:Connect(function()
+    playBeep()
+    safeWarp()
+end)
+
+protectBtn.MouseButton1Click:Connect(function()
+    playBeep()
+    protectEnabled = not protectEnabled
+    if protectEnabled then
+        protectBtn.Text = "保護ON"
+        protectBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
+        protectBtn.TextColor3 = Color3.fromRGB(0, 255, 0)
+        addLog("保護機能ON")
+    else
+        protectBtn.Text = "保護OFF"
+        protectBtn.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
+        protectBtn.TextColor3 = Color3.fromRGB(255, 0, 0)
+        addLog("保護機能OFF")
     end
 end)
 
--- 使い方：15人分の高さ(3.5*15=52.5)を10段階でワープ
-advancedWarp(3.5 * 15, 10)
+-- ロゴ浮遊アニメーション
+spawn(function()
+    while true do
+        floatingText.Position = UDim2.new(0.2, 0, 0.02 + 0.02 * math.sin(tick()*3), 0)
+        wait(0.03)
+    end
+end)
+
+-- 初期ログ
+addLog("daxhab 起動完了")
