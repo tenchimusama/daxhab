@@ -57,7 +57,7 @@ warpButton.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
 warpButton.TextColor3 = Color3.new(0, 1, 0)
 warpButton.Font = Enum.Font.Code
 warpButton.TextScaled = true
-warpButton.Text = "[ WARP / 25↑ ]"
+warpButton.Text = "[ WARP / 40↑ ]"
 warpButton.Parent = mainFrame
 
 -- ロゴアニメーション
@@ -66,7 +66,7 @@ local function animateLogo(text)
 	coroutine.wrap(function()
 		for i = 1, #text do
 			logo.Text = string.sub(text, 1, i)
-			wait(0.04)
+			wait(0.03)
 		end
 	end)()
 end
@@ -84,7 +84,7 @@ local function setNetworkOwner(part)
 	end)
 end
 
--- ワープ処理
+-- ワープ処理（障害物貫通）
 local function safeWarp()
 	local character = player.Character or player.CharacterAdded:Wait()
 	local root = character:FindFirstChild("HumanoidRootPart")
@@ -97,23 +97,36 @@ local function safeWarp()
 	addLog("ワープ中...")
 
 	setNetworkOwner(root)
-	
-	local targetCFrame = root.CFrame + Vector3.new(0, 25, 0)
-	
-	-- 状態変更で落下状態を回避
+
+	local offset = Vector3.new(0, 40, 0)
+	local origin = root.Position
+	local direction = offset
+	local rayParams = RaycastParams.new()
+	rayParams.FilterDescendantsInstances = {character}
+	rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+	local rayResult = workspace:Raycast(origin, direction, rayParams)
+
+	local targetCFrame
+	if rayResult then
+		targetCFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
+		addLog("障害物を検知、貫通位置に設定")
+	else
+		targetCFrame = root.CFrame + offset
+	end
+
 	humanoid:ChangeState(Enum.HumanoidStateType.Physics)
 	root.Velocity = Vector3.zero
 	root.RotVelocity = Vector3.zero
+	root.Anchored = true
 	
-	-- 強制位置移動
 	root.CFrame = targetCFrame
 
-	-- サーバー同期回避：位置補正6秒間継続（より強化）
 	local startTime = tick()
 	local heartbeatConn
 	heartbeatConn = RunService.Heartbeat:Connect(function()
 		if tick() - startTime > 6 then
 			heartbeatConn:Disconnect()
+			root.Anchored = false
 			return
 		end
 		if root and root.Parent then
@@ -127,7 +140,7 @@ local function safeWarp()
 		end
 	end)
 
-	addLog("ワープ成功（25スタッド上）")
+	addLog("ワープ成功（40スタッド上）")
 end
 
 -- ボタンイベント
