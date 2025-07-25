@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -34,6 +35,22 @@ logo.TextScaled = true
 logo.Text = ""
 logo.Parent = mainFrame
 
+-- ロゴアニメーション強化版
+local function animateLogoFancy(text)
+	logo.Text = ""
+	coroutine.wrap(function()
+		for i = 1, #text do
+			local char = string.sub(text, i, i)
+			logo.Text = logo.Text .. char
+			logo.TextColor3 = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+			logo.TextStrokeTransparency = 0.6
+			logo.TextStrokeColor3 = Color3.new(0, 0, 0)
+			wait(0.04)
+		end
+	end)()
+end
+animateLogoFancy("< daxhab / by / dax >")
+
 -- ログウィンドウ
 local logBox = Instance.new("TextLabel")
 logBox.Size = UDim2.new(1, -10, 0.5, -10)
@@ -45,32 +62,33 @@ logBox.TextXAlignment = Enum.TextXAlignment.Left
 logBox.TextYAlignment = Enum.TextYAlignment.Top
 logBox.TextSize = 14
 logBox.TextWrapped = true
-logBox.Text = ""  -- 初期ログ
+logBox.Text = ""
 logBox.ClipsDescendants = true
 logBox.Parent = mainFrame
 
+-- スタッド入力
+local heightInput = Instance.new("TextBox")
+heightInput.Size = UDim2.new(0.3, 0, 0.12, 0)
+heightInput.Position = UDim2.new(0.68, 0, 0.63, 0)
+heightInput.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+heightInput.TextColor3 = Color3.new(0, 1, 0)
+heightInput.PlaceholderText = "↑スタッド"
+heightInput.Text = "40"
+heightInput.TextScaled = true
+heightInput.Font = Enum.Font.Code
+heightInput.ClearTextOnFocus = false
+heightInput.Parent = mainFrame
+
 -- ボタン
 local warpButton = Instance.new("TextButton")
-warpButton.Size = UDim2.new(1, -20, 0.15, 0)
-warpButton.Position = UDim2.new(0, 10, 0.75, 0)
+warpButton.Size = UDim2.new(0.65, 0, 0.15, 0)
+warpButton.Position = UDim2.new(0.025, 0, 0.75, 0)
 warpButton.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
 warpButton.TextColor3 = Color3.new(0, 1, 0)
 warpButton.Font = Enum.Font.Code
 warpButton.TextScaled = true
-warpButton.Text = "[ WARP / 40↑ ]"
+warpButton.Text = "[ WARP ↑ ]"
 warpButton.Parent = mainFrame
-
--- ロゴアニメーション
-local function animateLogo(text)
-	logo.Text = ""
-	coroutine.wrap(function()
-		for i = 1, #text do
-			logo.Text = string.sub(text, 1, i)
-			wait(0.03)
-		end
-	end)()
-end
-animateLogo("daxhab / by / dax")
 
 -- ログ追加
 local function addLog(text)
@@ -84,7 +102,10 @@ local function setNetworkOwner(part)
 	end)
 end
 
--- ワープ処理（障害物貫通）
+-- リセット妨害（海外式）
+StarterGui:SetCore("ResetButtonCallback", false)
+
+-- ワープ処理
 local function safeWarp()
 	local character = player.Character or player.CharacterAdded:Wait()
 	local root = character:FindFirstChild("HumanoidRootPart")
@@ -94,11 +115,16 @@ local function safeWarp()
 		return
 	end
 
-	addLog("ワープ中...")
+	local height = tonumber(heightInput.Text)
+	if not height then
+		addLog("無効なスタッド数")
+		return
+	end
+
+	addLog("ワープ中... (↑" .. tostring(height) .. " stud)")
 
 	setNetworkOwner(root)
-
-	local offset = Vector3.new(0, 40, 0)
+	local offset = Vector3.new(0, height, 0)
 	local origin = root.Position
 	local direction = offset
 	local rayParams = RaycastParams.new()
@@ -114,11 +140,13 @@ local function safeWarp()
 		targetCFrame = root.CFrame + offset
 	end
 
-	humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, false)
+	humanoid.AutoRotate = true
+	root.Anchored = false
 	root.Velocity = Vector3.zero
 	root.RotVelocity = Vector3.zero
-	root.Anchored = true
-	
+	setNetworkOwner(root)
 	root.CFrame = targetCFrame
 
 	local startTime = tick()
@@ -126,21 +154,17 @@ local function safeWarp()
 	heartbeatConn = RunService.Heartbeat:Connect(function()
 		if tick() - startTime > 6 then
 			heartbeatConn:Disconnect()
-			root.Anchored = false
 			return
 		end
 		if root and root.Parent then
-			local dist = (root.Position - targetCFrame.Position).Magnitude
-			if dist > 0.25 then
-				root.CFrame = targetCFrame
-				root.Velocity = Vector3.zero
-				root.RotVelocity = Vector3.zero
-				setNetworkOwner(root)
-			end
+			root.Velocity = Vector3.zero
+			root.RotVelocity = Vector3.zero
+			root.CFrame = targetCFrame
+			setNetworkOwner(root)
 		end
 	end)
 
-	addLog("ワープ成功（40スタッド上）")
+	addLog("ワープ成功（↑" .. tostring(height) .. " stud）")
 end
 
 -- ボタンイベント
