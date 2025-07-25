@@ -1,4 +1,4 @@
--- 強化版スクリプト設定
+-- 最強スクリプト設定
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -11,14 +11,32 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player.PlayerGui
 
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 200, 0, 50)
-button.Position = UDim2.new(0.5, -100, 0.5, -25)
-button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+button.Size = UDim2.new(0, game:GetService("Workspace").CurrentCamera.ViewportSize.X / 8, 0, game:GetService("Workspace").CurrentCamera.ViewportSize.Y / 8)  -- 画面の8分の1
+button.Position = UDim2.new(0.5, -game:GetService("Workspace").CurrentCamera.ViewportSize.X / 16, 0.5, -game:GetService("Workspace").CurrentCamera.ViewportSize.Y / 16)  -- 中央に配置
+button.BackgroundColor3 = Color3.fromRGB(255, 255, 255)  -- 背景を透明にして虹色に変更
 button.Text = "daxhab/作者dax"
 button.TextColor3 = Color3.fromRGB(255, 255, 255)
 button.Font = Enum.Font.SourceSans
-button.TextSize = 18
-button.Parent = screenGui
+button.TextSize = 20
+button.TextStrokeTransparency = 0.7  -- テキストの輪郭を少し透明にしてスタイリッシュに
+
+-- 虹色の背景をアニメーションで変更
+local function createRainbowBackground()
+    local gradient = Instance.new("UIGradient")
+    gradient.Parent = button
+    gradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+        ColorSequenceKeypoint.new(0.15, Color3.fromRGB(255, 165, 0)),
+        ColorSequenceKeypoint.new(0.3, Color3.fromRGB(255, 255, 0)),
+        ColorSequenceKeypoint.new(0.45, Color3.fromRGB(0, 255, 0)),
+        ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0, 0, 255)),
+        ColorSequenceKeypoint.new(0.75, Color3.fromRGB(75, 0, 130)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(238, 130, 238))
+    }
+    gradient.Rotation = 90  -- 横に虹色が流れるように
+end
+
+createRainbowBackground()
 
 -- ボタンドラッグ機能
 local dragging = false
@@ -46,10 +64,11 @@ button.InputEnded:Connect(function(input)
     end
 end)
 
--- 天井貫通強化版
+-- 真上にワープし続け、天井がなくなるまで貫通する
 function moveUpUntilNoCeiling()
     local attemptCount = 0
-    while attemptCount < 50 do  -- 最大50回試行してそれでも天井に当たったら諦める
+    local maxAttempts = 50
+    while attemptCount < maxAttempts do
         local ray = workspace:Raycast(humanoidRootPart.Position, Vector3.new(0, 10, 0))
         if not ray then
             humanoidRootPart.CFrame = humanoidRootPart.CFrame + Vector3.new(0, 10, 0)
@@ -59,9 +78,24 @@ function moveUpUntilNoCeiling()
         end
         wait(0.1)
     end
+    if attemptCount == maxAttempts then
+        warn("天井貫通失敗: 最大試行回数を超えました")
+    end
 end
 
--- リセット回避強化
+-- 最上階に到達した後、動かなくなる
+function stayAtTop()
+    while true do
+        local ray = workspace:Raycast(humanoidRootPart.Position, Vector3.new(0, 10, 0))
+        if not ray then
+            -- 最上階に到達したらここで止まる
+            break
+        end
+        wait(0.1)
+    end
+end
+
+-- リセット回避機能
 function fixReset()
     while true do
         -- リセットの発生を高精度で検知
@@ -79,38 +113,17 @@ function disablePhysics()
     humanoidRootPart.CanCollide = false
 end
 
--- ランダム動き強化
-function randomMovement()
-    while true do
-        -- 微妙な動きで予測を難しく
-        humanoidRootPart.CFrame = humanoidRootPart.CFrame + Vector3.new(math.random(-0.2, 0.2), 0, math.random(-0.2, 0.2))
-        wait(0.1)  -- より早く移動して軌跡を予測不可能にする
-    end
-end
-
--- 高度な対策（検知回避強化）
-function evasiveManeuver()
-    while true do
-        -- プレイヤーの動きに予測不可能な遅延やランダム化を加える
-        humanoidRootPart.CFrame = humanoidRootPart.CFrame + Vector3.new(math.random(-0.5, 0.5), 0, math.random(-0.5, 0.5))
-        wait(math.random(0.1, 0.3))  -- 動きにランダムな遅延を加える
-    end
-end
-
 -- ワープボタンの処理
 button.MouseButton1Click:Connect(function()
     -- 真上にワープ
     moveUpUntilNoCeiling()
+
+    -- 最上階で止まる
+    stayAtTop()
 
     -- 物理無効化
     disablePhysics()
 
     -- リセット回避
     fixReset()
-
-    -- ランダム動きで回避
-    randomMovement()
-
-    -- 検知回避強化
-    evasiveManeuver()
 end)
