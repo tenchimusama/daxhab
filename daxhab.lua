@@ -1,4 +1,5 @@
--- CoreModule.lua
+-- daxhab Protection Script 完全版 統合版
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -7,6 +8,7 @@ local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 
+-- Core State --
 local State = {
     WarpEnabled = false,
     ResetProtectionEnabled = true,
@@ -37,7 +39,7 @@ function CoreModule:GetCharacter()
 end
 
 function CoreModule:GetHumanoid()
-    local char = self:GetCharacter()
+    local char = CoreModule:GetCharacter()
     if char then
         return char:FindFirstChildOfClass("Humanoid")
     end
@@ -45,7 +47,7 @@ function CoreModule:GetHumanoid()
 end
 
 function CoreModule:GetRootPart()
-    local char = self:GetCharacter()
+    local char = CoreModule:GetCharacter()
     if char then
         return char:FindFirstChild("HumanoidRootPart")
     end
@@ -58,17 +60,13 @@ function CoreModule:DebugLog(msg)
     end
 end
 
-return CoreModule
--- LoggerModule.lua
-local CoreModule = require(script.Parent.CoreModule)
-local CoreGui = game:GetService("CoreGui")
-
+-- Logger Module --
 local LoggerModule = {}
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "daxhabGui"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = CoreGui
+ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 local BgFrame = Instance.new("Frame")
 BgFrame.Size = UDim2.new(0, 280, 0, 180)
@@ -76,24 +74,32 @@ BgFrame.Position = UDim2.new(0.5, -140, 0.5, -90)
 BgFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 BgFrame.BackgroundTransparency = 0.7
 BgFrame.BorderSizePixel = 0
+BgFrame.ClipsDescendants = true
 BgFrame.Parent = ScreenGui
 
-local RainbowColors = {
-    Color3.fromRGB(255, 0, 0), Color3.fromRGB(255, 127, 0), Color3.fromRGB(255, 255, 0),
-    Color3.fromRGB(0, 255, 0), Color3.fromRGB(0, 0, 255), Color3.fromRGB(75, 0, 130),
-    Color3.fromRGB(148, 0, 211),
+local Gradient = Instance.new("UIGradient")
+Gradient.Rotation = 45
+Gradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+    ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 127, 0)),
+    ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 255, 0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 0)),
+    ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 0, 255)),
+    ColorSequenceKeypoint.new(0.83, Color3.fromRGB(75, 0, 130)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(148, 0, 211)),
 }
+Gradient.Parent = BgFrame
 
--- 虹色スクロール背景
 coroutine.wrap(function()
-    local idx = 1
     while true do
-        BgFrame.BackgroundColor3 = RainbowColors[idx]
-        idx = idx + 1
-        if idx > #RainbowColors then
-            idx = 1
+        for i = 0, 1, 0.01 do
+            Gradient.Offset = Vector2.new(i, 0)
+            task.wait(0.03)
         end
-        task.wait(0.3)
+        for i = 1, 0, -0.01 do
+            Gradient.Offset = Vector2.new(i, 0)
+            task.wait(0.03)
+        end
     end
 end)()
 
@@ -120,16 +126,17 @@ function LoggerModule:AddLog(msg)
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Text = tostring(msg)
     label.Parent = LogFrame
+    label.TextTransparency = 1
+    label.TextStrokeTransparency = 1
+    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tweenText = TweenService:Create(label, tweenInfo, {TextTransparency = 0, TextStrokeTransparency = 0})
+    tweenText:Play()
+    tweenText.Completed:Wait()
     task.wait(0.05)
     LogFrame.CanvasPosition = Vector2.new(0, LogFrame.CanvasSize.Y.Offset)
 end
 
-return LoggerModule
--- WarpModule.lua
-local TweenService = game:GetService("TweenService")
-local CoreModule = require(script.Parent.CoreModule)
-local LoggerModule = require(script.Parent.LoggerModule)
-
+-- Warp Module --
 local WarpModule = {}
 local State = CoreModule:GetState()
 
@@ -139,7 +146,7 @@ function WarpModule:SmoothWarp()
     if not root or not root:IsDescendantOf(game) then return end
 
     if not State.WarpBlockBypassEnabled then
-        -- ワープ禁止ゾーン判定など（未実装・拡張可）
+        -- 未実装のワープ禁止判定エリア対応など
     end
 
     local currentPos = root.Position
@@ -161,14 +168,8 @@ function WarpModule:AutoWarpLoop()
     end
 end
 
-return WarpModule
--- ResetProtectionModule.lua
-local CoreModule = require(script.Parent.CoreModule)
-local LoggerModule = require(script.Parent.LoggerModule)
-
+-- Reset Protection Module --
 local ResetProtectionModule = {}
-
-local State = CoreModule:GetState()
 
 function ResetProtectionModule:MonitorReset()
     while State.ResetProtectionEnabled do
@@ -188,8 +189,7 @@ function ResetProtectionModule:MonitorCharacter()
         local char = CoreModule:GetCharacter()
         if not char or not char:FindFirstChild("HumanoidRootPart") then
             LoggerModule:AddLog("キャラ紛失検出：復元処理")
-            local lp = game:GetService("Players").LocalPlayer
-            lp:LoadCharacter()
+            LocalPlayer:LoadCharacter()
         end
         task.wait(1)
     end
@@ -204,58 +204,41 @@ function ResetProtectionModule:Start()
     end)()
 end
 
-return ResetProtectionModule
--- TransparencyModule.lua
-local CoreModule = require(script.Parent.CoreModule)
-local LoggerModule = require(script.Parent.LoggerModule)
-
+-- Transparency Module --
 local TransparencyModule = {}
-local State = CoreModule:GetState()
 
 function TransparencyModule:ApplyTransparency()
     local char = CoreModule:GetCharacter()
     if not char then return end
-
     for _, v in ipairs(char:GetDescendants()) do
         if v:IsA("BasePart") or v:IsA("Decal") then
             v.Transparency = State.TransparencyEnabled and 1 or 0
         end
     end
-
     LoggerModule:AddLog("透明化: " .. tostring(State.TransparencyEnabled))
 end
 
-return TransparencyModule
--- NetworkOwnershipModule.lua
-local CoreModule = require(script.Parent.CoreModule)
-local LoggerModule = require(script.Parent.LoggerModule)
-
+-- Network Ownership Module --
 local NetworkOwnershipModule = {}
-local State = CoreModule:GetState()
 
 function NetworkOwnershipModule:ForceOwnership()
     while State.NetworkOwnershipEnabled do
         local root = CoreModule:GetRootPart()
         if root then
             pcall(function()
-                root:SetNetworkOwner(game.Players.LocalPlayer)
+                root:SetNetworkOwner(LocalPlayer)
             end)
         end
         task.wait(1)
     end
 end
 
-return NetworkOwnershipModule
--- ToolProtectionModule.lua
-local CoreModule = require(script.Parent.CoreModule)
-local LoggerModule = require(script.Parent.LoggerModule)
-
+-- Tool Protection Module --
 local ToolProtectionModule = {}
-local State = CoreModule:GetState()
 
 function ToolProtectionModule:MonitorTools()
     while State.ToolProtectionEnabled do
-        local backpack = game:GetService("Players").LocalPlayer:FindFirstChild("Backpack")
+        local backpack = LocalPlayer:FindFirstChild("Backpack")
         if backpack then
             for _, tool in ipairs(backpack:GetChildren()) do
                 if tool:IsA("Tool") and not tool:FindFirstChild("Handle") then
@@ -271,12 +254,7 @@ function ToolProtectionModule:MonitorTools()
     end
 end
 
-return ToolProtectionModule
-
--- MultiLayerMonitorModule.lua
-local CoreModule = require(script.Parent.CoreModule)
-local LoggerModule = require(script.Parent.LoggerModule)
-
+-- MultiLayer Monitor Module --
 local MultiLayerMonitorModule = {}
 
 function MultiLayerMonitorModule:WatchRoot()
@@ -284,7 +262,7 @@ function MultiLayerMonitorModule:WatchRoot()
         local root = CoreModule:GetRootPart()
         if not root then
             LoggerModule:AddLog("RootPartが存在しません。復旧を試みます。")
-            game.Players.LocalPlayer:LoadCharacter()
+            LocalPlayer:LoadCharacter()
         end
         task.wait(2)
     end
@@ -296,57 +274,31 @@ function MultiLayerMonitorModule:Start()
     end)()
 end
 
-return MultiLayerMonitorModule
--- MainScript.lua
-local Core = require(script.CoreModule)
-local Logger = require(script.LoggerModule)
-local Warp = require(script.WarpModule)
-local Reset = require(script.ResetProtectionModule)
-local Transparency = require(script.TransparencyModule)
-local NetOwner = require(script.NetworkOwnershipModule)
-local ToolProtect = require(script.ToolProtectionModule)
-local KickProtect = require(script.KickProtectionModule)
-local Monitor = require(script.MultiLayerMonitorModule)
+-- Kick Protection Module --
+local KickProtectionModule = {}
 
--- 起動処理
-Logger:AddLog("システム起動中...")
-Reset:Start()
-Monitor:Start()
-KickProtect:InterceptKick()
-
-coroutine.wrap(function()
-    Warp:AutoWarpLoop()
-end)()
-
-coroutine.wrap(function()
-    NetOwner:ForceOwnership()
-end)()
-
-coroutine.wrap(function()
-    ToolProtect:MonitorTools()
-end)()
-
--- 透明トグル監視
-game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.T then
-        local s = Core:GetState()
-        Core:SetState("TransparencyEnabled", not s.TransparencyEnabled)
-        Transparency:ApplyTransparency()
+function KickProtectionModule:InterceptKick()
+    if State.KickProtectionEnabled then
+        local mt = getrawmetatable(game)
+        local oldNamecall = mt.__namecall
+        setreadonly(mt, false)
+        mt.__namecall = newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+            if method == "Kick" then
+                LoggerModule:AddLog("キック検知をブロックしました。")
+                return
+            end
+            return oldNamecall(self, ...)
+        end)
+        setreadonly(mt, true)
     end
-end)
+end
 
-Logger:AddLog("システム起動完了")
--- GuiControlModule.lua
-local CoreModule = require(script.Parent.CoreModule)
-local LoggerModule = require(script.Parent.LoggerModule)
-local CoreGui = game:GetService("CoreGui")
-local UserInputService = game:GetService("UserInputService")
-
+-- GUI Control Module --
 local GuiControlModule = {}
 
 function GuiControlModule:CreateControlPanel()
-    local screenGui = CoreGui:FindFirstChild("daxhabGui")
+    local screenGui = ScreenGui
     if not screenGui then return end
 
     local toggleButton = Instance.new("TextButton")
@@ -361,14 +313,13 @@ function GuiControlModule:CreateControlPanel()
     toggleButton.Parent = screenGui
 
     toggleButton.MouseButton1Click:Connect(function()
-        local state = CoreModule:GetState()
-        state.GuiVisible = not state.GuiVisible
+        State.GuiVisible = not State.GuiVisible
         for _, child in ipairs(screenGui:GetChildren()) do
             if child:IsA("Frame") and child ~= toggleButton then
-                child.Visible = state.GuiVisible
+                child.Visible = State.GuiVisible
             end
         end
-        LoggerModule:AddLog("GUI表示: " .. tostring(state.GuiVisible))
+        LoggerModule:AddLog("GUI表示: " .. tostring(State.GuiVisible))
     end)
 
     local warpToggle = Instance.new("TextButton")
@@ -383,12 +334,36 @@ function GuiControlModule:CreateControlPanel()
     warpToggle.Parent = screenGui
 
     warpToggle.MouseButton1Click:Connect(function()
-        local state = CoreModule:GetState()
-        state.WarpEnabled = not state.WarpEnabled
-        LoggerModule:AddLog("Warp: " .. tostring(state.WarpEnabled))
+        State.WarpEnabled = not State.WarpEnabled
+        LoggerModule:AddLog("Warp: " .. tostring(State.WarpEnabled))
     end)
 end
 
-return GuiControlModule
-local GuiControl = require(script.GuiControlModule)
-GuiControl:CreateControlPanel()
+-- Main execution --
+LoggerModule:AddLog("システム起動中...")
+ResetProtectionModule:Start()
+MultiLayerMonitorModule:Start()
+KickProtectionModule:InterceptKick()
+GuiControlModule:CreateControlPanel()
+
+coroutine.wrap(function()
+    WarpModule:AutoWarpLoop()
+end)()
+
+coroutine.wrap(function()
+    NetworkOwnershipModule:ForceOwnership()
+end)()
+
+coroutine.wrap(function()
+    ToolProtectionModule:MonitorTools()
+end)()
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.T then
+        State.TransparencyEnabled = not State.TransparencyEnabled
+        TransparencyModule:ApplyTransparency()
+    end
+end)
+
+LoggerModule:AddLog("システム起動完了")
