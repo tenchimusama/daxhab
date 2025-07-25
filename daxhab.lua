@@ -10,9 +10,9 @@ local player = Players.LocalPlayer
 -- アンチキック＆Idled無効化
 player.Idled:Connect(function()
     local VirtualUser = game:GetService("VirtualUser")
-    VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
     wait(1)
-    VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
 end)
 StarterGui:SetCore("ResetButtonCallback", false)
 
@@ -60,13 +60,13 @@ end)
 -- 背景に「daxhab/by/dax」を収めるロゴ作成
 local logoText = "< daxhab / by / dax >"
 local logoHolder = Instance.new("Frame")
-logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
+logoHolder.Size = UDim2.new(1, 0, 0.15, 0) -- 高さを少し狭く設定
 logoHolder.Position = UDim2.new(0, 0, 0, 0)
 logoHolder.BackgroundTransparency = 1
 logoHolder.Parent = mainFrame
 
 local logoLabels = {}
-local labelWidth = 15  -- 文字幅調整
+local labelWidth = 12  -- 文字幅をさらに狭める
 
 for i = 1, #logoText do
     local lbl = Instance.new("TextLabel")
@@ -172,7 +172,7 @@ local function animateButton(btn)
     }):Play()
 end
 
--- 座標変更実行関数
+-- 座標変更実行関数（リセット回避強化）
 local function safeMove()
     local character = player.Character or player.CharacterAdded:Wait()
     local root = character:FindFirstChild("HumanoidRootPart")
@@ -181,51 +181,29 @@ local function safeMove()
         addLog("キャラクターの主要パーツが見つかりません")
         return
     end
+    
+    -- リセット回避：HumanoidRootPartのアンカー
+    root.Anchored = true
+    humanoid.Health = humanoid.Health + 0.1 -- 健康値をわずかに更新してリセット防止
+    
+    -- ワープ後の位置変更
     local height = tonumber(heightInput.Text)
     if not height then
         addLog("無効なスタッド数")
         return
     end
-    currentHeight.Text = "↑: "..tostring(height)
-    addLog("座標変更中... (↑"..tostring(height).." stud)")
+    -- 座標変更処理
+    root.CFrame = root.CFrame + Vector3.new(0, height, 0)  -- ここでスタッド分上昇させる
 
-    -- 座標変更対策
-    -- プレイヤーの位置を設定する前に、物理挙動を一時的に停止
-    for _, part in ipairs(character:GetChildren()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = false    -- 衝突判定を無効化
-            part.Anchored = true       -- 一時的に固定（動かないように）
-            part.Transparency = 0.6    -- 透明化
-        end
-    end
-
-    -- ネットワーク所有権を変更（サーバーによる移動検出を回避）
-    local function setNetworkOwner(part)
-        pcall(function()
-            part:SetNetworkOwner(player)
-        end)
-    end
-
-    setNetworkOwner(root)
-
-    -- 真上に指定された高さ分だけ移動（座標変更）
-    local newPosition = root.Position + Vector3.new(0, height, 0)
-    root.CFrame = CFrame.new(newPosition)
-
-    -- 座標変更後に物理挙動と透明度を元に戻す
-    task.wait(0.5)  -- 少し待機してから元に戻す
-    for _, part in ipairs(character:GetChildren()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = true   -- 衝突判定を再度有効化
-            part.Anchored = false    -- 固定を解除
-            part.Transparency = 0    -- 透明度を戻す
-        end
-    end
-
-    addLog("座標変更成功（↑"..tostring(height).." stud）")
+    -- アンカーを戻す
+    task.wait(0.5)  -- 少し待つ
+    root.Anchored = false
+    
+    addLog("ワープ完了")
 end
 
 warpButton.MouseButton1Click:Connect(function()
     animateButton(warpButton)
     safeMove()
 end)
+
