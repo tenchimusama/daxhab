@@ -1,170 +1,195 @@
--- daxhab 強化版：サーバー並みの安定性と保護力を備えた完全版スクリプト（改良済み）
--- 特徴：即実行防止 / GUI操作 / 自己復旧 / 透明化 / ワープ / 巻き戻し補正 / 所有権保持
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local StarterGui = game:GetService("StarterGui")
 local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
+local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local hum = character:WaitForChild("Humanoid")
+local hrp = character:WaitForChild("HumanoidRootPart")
 
--- 変数初期化
-local char, hum, hrp
 local isProtected = false
-local isInvisible = false
-local guiElements = {}
+local isTransparent = false
 
--- キャラ取得関数
-local function InitCharacter()
-    char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    hum = char:WaitForChild("Humanoid")
-    hrp = char:WaitForChild("HumanoidRootPart")
-end
+--============================
+-- 🖥 GUIの作成
+--============================
 
--- 安定化：座標異常時の補正
-local function PositionSafetyCheck()
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ProtectionGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = CoreGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 260, 0, 160)
+mainFrame.Position = UDim2.new(0.5, -130, 0.85, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.BorderColor3 = Color3.fromRGB(0, 255, 0)
+mainFrame.BorderSizePixel = 2
+mainFrame.Parent = screenGui
+mainFrame.Active = true
+mainFrame.Draggable = true
+
+local Title = Instance.new("TextLabel")
+Title.Text = "🛡 daxhab 保護スクリプト"
+Title.Size = UDim2.new(1, 0, 0.2, 0)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.fromRGB(0, 255, 0)
+Title.Font = Enum.Font.Code
+Title.TextScaled = true
+Title.Parent = mainFrame
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Text = "🔴 停止中"
+StatusLabel.Size = UDim2.new(1, 0, 0.2, 0)
+StatusLabel.Position = UDim2.new(0, 0, 0.2, 0)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.TextColor3 = Color3.new(1, 1, 1)
+StatusLabel.Font = Enum.Font.Code
+StatusLabel.TextScaled = true
+StatusLabel.Parent = mainFrame
+
+local StartBtn = Instance.new("TextButton")
+StartBtn.Text = "保護開始"
+StartBtn.Size = UDim2.new(1, 0, 0.2, 0)
+StartBtn.Position = UDim2.new(0, 0, 0.4, 0)
+StartBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+StartBtn.TextColor3 = Color3.new(1, 1, 1)
+StartBtn.Font = Enum.Font.Code
+StartBtn.TextScaled = true
+StartBtn.Parent = mainFrame
+
+local ToggleTransparency = Instance.new("TextButton")
+ToggleTransparency.Text = "透明化：OFF"
+ToggleTransparency.Size = UDim2.new(1, 0, 0.2, 0)
+ToggleTransparency.Position = UDim2.new(0, 0, 0.6, 0)
+ToggleTransparency.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ToggleTransparency.TextColor3 = Color3.new(1, 1, 1)
+ToggleTransparency.Font = Enum.Font.Code
+ToggleTransparency.TextScaled = true
+ToggleTransparency.Parent = mainFrame
+
+local WarpBtn = Instance.new("TextButton")
+WarpBtn.Text = "⬆ ワープ"
+WarpBtn.Size = UDim2.new(1, 0, 0.2, 0)
+WarpBtn.Position = UDim2.new(0, 0, 0.8, 0)
+WarpBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
+WarpBtn.TextColor3 = Color3.new(1, 1, 1)
+WarpBtn.Font = Enum.Font.Code
+WarpBtn.TextScaled = true
+WarpBtn.Parent = mainFrame
+
+--============================
+-- 🛠 保護ロジック
+--============================
+
+function MaintainHumanoidRootPart()
     spawn(function()
         while isProtected do
+            character = LocalPlayer.Character
+            hum = character:FindFirstChild("Humanoid")
+            hrp = character:FindFirstChild("HumanoidRootPart")
+
             if hrp then
-                local pos = hrp.Position
-                if math.abs(pos.Y) > 1000 or math.abs(pos.X) > 1e5 or math.abs(pos.Z) > 1e5 then
-                    hrp.CFrame = CFrame.new(0, 10, 0) -- 安全地帯に戻す
-                end
+                if hrp.Anchored then hrp.Anchored = false end
+                if hrp.Transparency and hrp.Transparency > 0.5 then hrp.Transparency = 0 end
+                if hrp.CanCollide == false then hrp.CanCollide = true end
+                if hrp.Size.Magnitude < 1 then hrp.Size = Vector3.new(2,2,1) end
             end
-            task.wait(1)
+            wait(0.1)
         end
     end)
 end
 
--- キャラプロパティ監視
-local function MonitorCharacter()
-    spawn(function()
-        while isProtected do
-            if hrp then
-                hrp.Anchored = false
-                hrp.CanCollide = true
-                if hrp.Size.Magnitude < 1 then hrp.Size = Vector3.new(2, 2, 1) end
-                if hrp.Transparency > 0.9 and not isInvisible then
-                    hrp.Transparency = 0
-                end
+function WatchDeath()
+    if hum then
+        hum.Died:Connect(function()
+            if isProtected then
+                wait(0.2)
+                LocalPlayer:LoadCharacter()
+                wait(0.5)
+                StartProtection()
             end
-            task.wait(0.05)
-        end
-    end)
+        end)
+    end
 end
 
--- 所有権維持
-local function MaintainNetworkOwnership()
-    spawn(function()
-        while isProtected do
-            pcall(function()
-                if hrp then hrp:SetNetworkOwner(LocalPlayer) end
-            end)
-            task.wait(0.1)
-        end
-    end)
+function SafeWarp(height)
+    if not hrp or not character then return end
+    local origin = hrp.Position
+    local target = origin + Vector3.new(0, height, 0)
+
+    local tweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Linear)
+    local warpTween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(target)})
+    warpTween:Play()
 end
 
--- 死亡時復旧
-local function MonitorDeath()
-    hum.Died:Connect(function()
+--============================
+-- 🔘 GUIボタン接続と状態切替
+--============================
+
+function StartProtection()
+    if isProtected then return end
+    isProtected = true
+    StatusLabel.Text = "🟢 保護中"
+    StartBtn.Text = "保護停止"
+
+    MaintainHumanoidRootPart()
+    WatchDeath()
+end
+
+function StopProtection()
+    if not isProtected then return end
+    isProtected = false
+    StatusLabel.Text = "🔴 停止中"
+    StartBtn.Text = "保護開始"
+end
+
+function ConnectButtons()
+    StartBtn.MouseButton1Click:Connect(function()
         if isProtected then
-            task.wait(0.5)
-            LocalPlayer:LoadCharacter()
-            task.wait(1)
-            InitCharacter()
+            StopProtection()
+        else
             StartProtection()
         end
     end)
-end
 
--- ワープ関数
-local function WarpUp()
-    if not hrp then return end
-    local target = hrp.Position + Vector3.new(0, 50, 0)
-    local tween = TweenService:Create(hrp, TweenInfo.new(0.25), {CFrame = CFrame.new(target)})
-    tween:Play()
-end
-
--- GUI生成
-local function CreateGui()
-    local screen = Instance.new("ScreenGui", CoreGui)
-    screen.Name = "DaxhabShieldGUI"
-
-    local frame = Instance.new("Frame", screen)
-    frame.Size = UDim2.new(0, 250, 0, 180)
-    frame.Position = UDim2.new(0.5, -125, 0.7, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(10,10,10)
-    frame.BorderColor3 = Color3.fromRGB(0,255,0)
-    frame.Active = true
-    frame.Draggable = true
-
-    local status = Instance.new("TextLabel", frame)
-    status.Size = UDim2.new(1, 0, 0.2, 0)
-    status.Text = "状態: 待機中"
-    status.TextColor3 = Color3.fromRGB(0, 255, 0)
-    status.BackgroundTransparency = 1
-    status.Font = Enum.Font.Code
-    status.TextScaled = true
-
-    local startBtn = Instance.new("TextButton", frame)
-    startBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
-    startBtn.Size = UDim2.new(0.8, 0, 0.2, 0)
-    startBtn.Text = "保護開始"
-    startBtn.Font = Enum.Font.Code
-    startBtn.TextScaled = true
-    startBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-    startBtn.TextColor3 = Color3.new(1, 1, 1)
-
-    local warpBtn = Instance.new("TextButton", frame)
-    warpBtn.Position = UDim2.new(0.1, 0, 0.55, 0)
-    warpBtn.Size = UDim2.new(0.8, 0, 0.2, 0)
-    warpBtn.Text = "ワープ"
-    warpBtn.Font = Enum.Font.Code
-    warpBtn.TextScaled = true
-    warpBtn.BackgroundColor3 = Color3.fromRGB(0, 50, 150)
-    warpBtn.TextColor3 = Color3.new(1, 1, 1)
-
-    local invisBtn = Instance.new("TextButton", frame)
-    invisBtn.Position = UDim2.new(0.1, 0, 0.8, 0)
-    invisBtn.Size = UDim2.new(0.8, 0, 0.15, 0)
-    invisBtn.Text = "透明化: OFF"
-    invisBtn.Font = Enum.Font.Code
-    invisBtn.TextScaled = true
-    invisBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-    invisBtn.TextColor3 = Color3.new(1, 1, 1)
-
-    guiElements = {
-        status = status,
-        startBtn = startBtn,
-        warpBtn = warpBtn,
-        invisBtn = invisBtn
-    }
-
-    startBtn.MouseButton1Click:Connect(StartProtection)
-    warpBtn.MouseButton1Click:Connect(WarpUp)
-    invisBtn.MouseButton1Click:Connect(function()
-        isInvisible = not isInvisible
-        if hrp then
-            hrp.Transparency = isInvisible and 1 or 0
+    ToggleTransparency.MouseButton1Click:Connect(function()
+        if isTransparent then
+            isTransparent = false
+            if hrp then hrp.Transparency = 0 end
+            ToggleTransparency.Text = "透明化：OFF"
+        else
+            isTransparent = true
+            if hrp then hrp.Transparency = 1 end
+            ToggleTransparency.Text = "透明化：ON"
         end
-        invisBtn.Text = "透明化: " .. (isInvisible and "ON" or "OFF")
+    end)
+
+    WarpBtn.MouseButton1Click:Connect(function()
+        SafeWarp(40)
     end)
 end
 
--- 保護起動関数
-function StartProtection()
-    if isProtected then return end
-    InitCharacter()
-    isProtected = true
-    guiElements.status.Text = "状態: 起動中"
-    MonitorCharacter()
-    MaintainNetworkOwnership()
-    MonitorDeath()
-    PositionSafetyCheck()
-end
+--============================
+-- 🚀 自動起動＆自己復旧ループ
+--============================
 
--- GUI起動
-CreateGui()
-print("✅ daxhab 強化版シールド 起動準備完了")
+ConnectButtons()
+StartProtection()
+
+spawn(function()
+    while true do
+        wait(1)
+        if not screenGui or not screenGui.Parent then
+            screenGui.Parent = CoreGui
+        end
+        if not isProtected then
+            StartProtection()
+        end
+    end
+end)
+
+print("✅ 最強保護スクリプト v3 起動完了")
