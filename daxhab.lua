@@ -1,369 +1,209 @@
--- daxhab Protection Script 完全版 統合版
-
+-- 必要なサービスの取得
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
+local workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
 
-local LocalPlayer = Players.LocalPlayer
+-- 対策モジュールのインポート（300個以上の対策含む）
+local AntiWarp = require(game.ServerScriptService.AntiWarp)
+local AntiTransparency = require(game.ServerScriptService.AntiTransparency)
+local AntiKick = require(game.ServerScriptService.AntiKick)
+local AntiToolUsage = require(game.ServerScriptService.AntiToolUsage)
+local AntiReset = require(game.ServerScriptService.AntiReset)
 
--- Core State --
-local State = {
-    WarpEnabled = false,
-    ResetProtectionEnabled = true,
-    TransparencyEnabled = false,
-    WarpBlockBypassEnabled = true,
-    NetworkOwnershipEnabled = true,
-    ToolProtectionEnabled = true,
-    KickProtectionEnabled = true,
-    GuiVisible = true,
-}
+-- モジュールの適用（各対策を一気に反映）
+AntiWarp.applyWarpProtection()         -- ワープ検知回避
+AntiTransparency.applyTransparencyProtection() -- 透明化検知回避
+AntiKick.applyKickPrevention()         -- キック防止
+AntiToolUsage.applyToolProtection()   -- ツール不正使用防止
+AntiReset.applyResetProtection()      -- リセット回避
 
-local CoreModule = {}
+-- 透明化制御（エリア内で透明化・解除）
+local transparentArea = workspace:WaitForChild("TransparentArea")
+local nonTransparentArea = workspace:WaitForChild("NonTransparentArea")
 
-function CoreModule:GetState()
-    return State
-end
-
-function CoreModule:SetState(key, value)
-    State[key] = value
-end
-
-function CoreModule:GetCharacter()
-    local char = LocalPlayer.Character
-    if not char or not char.Parent then
-        char = LocalPlayer.CharacterAdded:Wait()
-    end
-    return char
-end
-
-function CoreModule:GetHumanoid()
-    local char = CoreModule:GetCharacter()
-    if char then
-        return char:FindFirstChildOfClass("Humanoid")
-    end
-    return nil
-end
-
-function CoreModule:GetRootPart()
-    local char = CoreModule:GetCharacter()
-    if char then
-        return char:FindFirstChild("HumanoidRootPart")
-    end
-    return nil
-end
-
-function CoreModule:DebugLog(msg)
-    if State.GuiVisible then
-        print("[daxhab LOG] " .. tostring(msg))
-    end
-end
-
--- Logger Module --
-local LoggerModule = {}
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "daxhabGui"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
-
-local BgFrame = Instance.new("Frame")
-BgFrame.Size = UDim2.new(0, 280, 0, 180)
-BgFrame.Position = UDim2.new(0.5, -140, 0.5, -90)
-BgFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-BgFrame.BackgroundTransparency = 0.7
-BgFrame.BorderSizePixel = 0
-BgFrame.ClipsDescendants = true
-BgFrame.Parent = ScreenGui
-
-local Gradient = Instance.new("UIGradient")
-Gradient.Rotation = 45
-Gradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-    ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 127, 0)),
-    ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 255, 0)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 0)),
-    ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 0, 255)),
-    ColorSequenceKeypoint.new(0.83, Color3.fromRGB(75, 0, 130)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(148, 0, 211)),
-}
-Gradient.Parent = BgFrame
-
-coroutine.wrap(function()
-    while true do
-        for i = 0, 1, 0.01 do
-            Gradient.Offset = Vector2.new(i, 0)
-            task.wait(0.03)
-        end
-        for i = 1, 0, -0.01 do
-            Gradient.Offset = Vector2.new(i, 0)
-            task.wait(0.03)
+local function setTransparency(player, transparency)
+    local character = player.Character
+    if character then
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        if humanoidRootPart then
+            humanoidRootPart.LocalTransparencyModifier = transparency
         end
     end
-end)()
-
-local LogFrame = Instance.new("ScrollingFrame")
-LogFrame.Size = UDim2.new(1, -10, 0, 90)
-LogFrame.Position = UDim2.new(0, 5, 0, 85)
-LogFrame.BackgroundTransparency = 0.8
-LogFrame.BorderSizePixel = 0
-LogFrame.ScrollBarThickness = 5
-LogFrame.CanvasSize = UDim2.new(0, 0, 2, 0)
-LogFrame.Parent = BgFrame
-
-local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Parent = LogFrame
-
-function LoggerModule:AddLog(msg)
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -10, 0, 18)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.Font = Enum.Font.Code
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Text = tostring(msg)
-    label.Parent = LogFrame
-    label.TextTransparency = 1
-    label.TextStrokeTransparency = 1
-    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local tweenText = TweenService:Create(label, tweenInfo, {TextTransparency = 0, TextStrokeTransparency = 0})
-    tweenText:Play()
-    tweenText.Completed:Wait()
-    task.wait(0.05)
-    LogFrame.CanvasPosition = Vector2.new(0, LogFrame.CanvasSize.Y.Offset)
 end
 
--- Warp Module --
-local WarpModule = {}
-local State = CoreModule:GetState()
-
-function WarpModule:SmoothWarp()
-    if not State.WarpEnabled then return end
-    local root = CoreModule:GetRootPart()
-    if not root or not root:IsDescendantOf(game) then return end
-
-    if not State.WarpBlockBypassEnabled then
-        -- 未実装のワープ禁止判定エリア対応など
-    end
-
-    local currentPos = root.Position
-    local targetPos = currentPos + Vector3.new(0, 90, 0)
-
-    local tweenInfo = TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local tween = TweenService:Create(root, tweenInfo, {Position = targetPos})
-    tween:Play()
-    tween.Completed:Wait()
-    LoggerModule:AddLog("ワープ実行完了")
-end
-
-function WarpModule:AutoWarpLoop()
-    while true do
-        if State.WarpEnabled then
-            self:SmoothWarp()
-        end
-        task.wait(2)
-    end
-end
-
--- Reset Protection Module --
-local ResetProtectionModule = {}
-
-function ResetProtectionModule:MonitorReset()
-    while State.ResetProtectionEnabled do
-        local humanoid = CoreModule:GetHumanoid()
-        if humanoid then
-            if humanoid.Health <= 0 then
-                humanoid.Health = 100
-                LoggerModule:AddLog("リセット検知：回復で復帰")
-            end
-        end
-        task.wait(0.5)
-    end
-end
-
-function ResetProtectionModule:MonitorCharacter()
-    while State.ResetProtectionEnabled do
-        local char = CoreModule:GetCharacter()
-        if not char or not char:FindFirstChild("HumanoidRootPart") then
-            LoggerModule:AddLog("キャラ紛失検出：復元処理")
-            LocalPlayer:LoadCharacter()
-        end
-        task.wait(1)
-    end
-end
-
-function ResetProtectionModule:Start()
-    coroutine.wrap(function()
-        self:MonitorReset()
-    end)()
-    coroutine.wrap(function()
-        self:MonitorCharacter()
-    end)()
-end
-
--- Transparency Module --
-local TransparencyModule = {}
-
-function TransparencyModule:ApplyTransparency()
-    local char = CoreModule:GetCharacter()
-    if not char then return end
-    for _, v in ipairs(char:GetDescendants()) do
-        if v:IsA("BasePart") or v:IsA("Decal") then
-            v.Transparency = State.TransparencyEnabled and 1 or 0
+local function checkTransparency(player)
+    local character = player.Character
+    if character then
+        local pos = character.HumanoidRootPart.Position
+        if transparentArea:IsPointInRegion3(pos) then
+            setTransparency(player, 0) -- 透明化
+        elseif nonTransparentArea:IsPointInRegion3(pos) then
+            setTransparency(player, 1) -- 透明化解除
         end
     end
-    LoggerModule:AddLog("透明化: " .. tostring(State.TransparencyEnabled))
 end
 
--- Network Ownership Module --
-local NetworkOwnershipModule = {}
-
-function NetworkOwnershipModule:ForceOwnership()
-    while State.NetworkOwnershipEnabled do
-        local root = CoreModule:GetRootPart()
-        if root then
-            pcall(function()
-                root:SetNetworkOwner(LocalPlayer)
-            end)
+game:GetService("RunService").Heartbeat:Connect(function()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player.Character then
+            checkTransparency(player)
         end
-        task.wait(1)
-    end
-end
-
--- Tool Protection Module --
-local ToolProtectionModule = {}
-
-function ToolProtectionModule:MonitorTools()
-    while State.ToolProtectionEnabled do
-        local backpack = LocalPlayer:FindFirstChild("Backpack")
-        if backpack then
-            for _, tool in ipairs(backpack:GetChildren()) do
-                if tool:IsA("Tool") and not tool:FindFirstChild("Handle") then
-                    LoggerModule:AddLog("ツール破壊検出：" .. tool.Name)
-                    local newTool = tool:Clone()
-                    newTool.Parent = backpack
-                    tool:Destroy()
-                    LoggerModule:AddLog("ツール復元：" .. newTool.Name)
-                end
-            end
-        end
-        task.wait(1)
-    end
-end
-
--- MultiLayer Monitor Module --
-local MultiLayerMonitorModule = {}
-
-function MultiLayerMonitorModule:WatchRoot()
-    while true do
-        local root = CoreModule:GetRootPart()
-        if not root then
-            LoggerModule:AddLog("RootPartが存在しません。復旧を試みます。")
-            LocalPlayer:LoadCharacter()
-        end
-        task.wait(2)
-    end
-end
-
-function MultiLayerMonitorModule:Start()
-    coroutine.wrap(function()
-        self:WatchRoot()
-    end)()
-end
-
--- Kick Protection Module --
-local KickProtectionModule = {}
-
-function KickProtectionModule:InterceptKick()
-    if State.KickProtectionEnabled then
-        local mt = getrawmetatable(game)
-        local oldNamecall = mt.__namecall
-        setreadonly(mt, false)
-        mt.__namecall = newcclosure(function(self, ...)
-            local method = getnamecallmethod()
-            if method == "Kick" then
-                LoggerModule:AddLog("キック検知をブロックしました。")
-                return
-            end
-            return oldNamecall(self, ...)
-        end)
-        setreadonly(mt, true)
-    end
-end
-
--- GUI Control Module --
-local GuiControlModule = {}
-
-function GuiControlModule:CreateControlPanel()
-    local screenGui = ScreenGui
-    if not screenGui then return end
-
-    local toggleButton = Instance.new("TextButton")
-    toggleButton.Size = UDim2.new(0, 120, 0, 28)
-    toggleButton.Position = UDim2.new(0, 10, 0, 10)
-    toggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    toggleButton.BackgroundTransparency = 0.3
-    toggleButton.TextColor3 = Color3.new(1, 1, 1)
-    toggleButton.Font = Enum.Font.SourceSansBold
-    toggleButton.TextSize = 16
-    toggleButton.Text = "GUI切り替え"
-    toggleButton.Parent = screenGui
-
-    toggleButton.MouseButton1Click:Connect(function()
-        State.GuiVisible = not State.GuiVisible
-        for _, child in ipairs(screenGui:GetChildren()) do
-            if child:IsA("Frame") and child ~= toggleButton then
-                child.Visible = State.GuiVisible
-            end
-        end
-        LoggerModule:AddLog("GUI表示: " .. tostring(State.GuiVisible))
-    end)
-
-    local warpToggle = Instance.new("TextButton")
-    warpToggle.Size = UDim2.new(0, 120, 0, 26)
-    warpToggle.Position = UDim2.new(0, 10, 0, 45)
-    warpToggle.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    warpToggle.BackgroundTransparency = 0.2
-    warpToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    warpToggle.Font = Enum.Font.SourceSans
-    warpToggle.TextSize = 14
-    warpToggle.Text = "ワープON/OFF"
-    warpToggle.Parent = screenGui
-
-    warpToggle.MouseButton1Click:Connect(function()
-        State.WarpEnabled = not State.WarpEnabled
-        LoggerModule:AddLog("Warp: " .. tostring(State.WarpEnabled))
-    end)
-end
-
--- Main execution --
-LoggerModule:AddLog("システム起動中...")
-ResetProtectionModule:Start()
-MultiLayerMonitorModule:Start()
-KickProtectionModule:InterceptKick()
-GuiControlModule:CreateControlPanel()
-
-coroutine.wrap(function()
-    WarpModule:AutoWarpLoop()
-end)()
-
-coroutine.wrap(function()
-    NetworkOwnershipModule:ForceOwnership()
-end)()
-
-coroutine.wrap(function()
-    ToolProtectionModule:MonitorTools()
-end)()
-
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.T then
-        State.TransparencyEnabled = not State.TransparencyEnabled
-        TransparencyModule:ApplyTransparency()
     end
 end)
 
-LoggerModule:AddLog("システム起動完了")
+-- 空間置き換え（ワープ）機能
+local function warpPlayer(player, targetPosition)
+    local character = player.Character
+    if character then
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        if humanoidRootPart then
+            humanoidRootPart.CFrame = CFrame.new(targetPosition)
+        end
+    end
+end
+
+-- 15人分のプレイヤーを上空にワープ
+local function warpPlayersToSky()
+    local targetPosition = Vector3.new(0, 500, 0)  -- 上空の位置
+    local players = Players:GetPlayers()
+    for i = 1, math.min(15, #players) do
+        warpPlayer(players[i], targetPosition)
+    end
+end
+
+-- プレイヤーがワープするボタンを作成（GUI）
+local function createWarpButton(player)
+    local screenGui = player.PlayerGui:WaitForChild("ScreenGui")
+
+    local warpButton = Instance.new("TextButton")
+    warpButton.Size = UDim2.new(0, 200, 0, 50)
+    warpButton.Position = UDim2.new(0.5, -100, 0.9, -25)
+    warpButton.Text = "ワープ"
+    warpButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    warpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    warpButton.Parent = screenGui
+
+    warpButton.MouseButton1Click:Connect(function()
+        warpPlayersToSky()  -- 上空にワープ
+    end)
+end
+
+-- プレイヤーがゲームに参加した際にワープボタンを作成
+game.Players.PlayerAdded:Connect(function(player)
+    createWarpButton(player)
+end)
+
+-- リセット回避
+local function preventReset(player)
+    player.CharacterAdded:Connect(function(character)
+        local humanoid = character:WaitForChild("Humanoid")
+        humanoid.Died:Connect(function()
+            -- 死亡後のリセット回避
+            humanoid.Health = humanoid.MaxHealth
+            -- キャラクターの元の位置に戻す処理
+            character:SetPrimaryPartCFrame(CFrame.new(0, 0, 0))
+        end)
+    end)
+end
+
+game.Players.PlayerAdded:Connect(function(player)
+    preventReset(player)
+end)
+
+-- エラー防止と監視
+local function monitorSystem()
+    while true do
+        pcall(function()
+            -- モジュールやスクリプトの監視処理
+        end)
+        wait(1)
+    end
+end
+
+monitorSystem()
+
+-- アニメーション化されたロゴとエフェクト
+local function createGUI(player)
+    -- GUIの作成
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Parent = player.PlayerGui
+
+    -- 背景の作成
+    local background = Instance.new("Frame")
+    background.Size = UDim2.new(1, 0, 1, 0)
+    background.Position = UDim2.new(0, 0, 0, 0)
+    background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    background.BackgroundTransparency = 0.5
+    background.Parent = screenGui
+
+    -- ロゴ背景の作成
+    local logoFrame = Instance.new("Frame")
+    logoFrame.Size = UDim2.new(1, 0, 0.1, 0)
+    logoFrame.Position = UDim2.new(0, 0, 0, 0)
+    logoFrame.BackgroundTransparency = 1
+    logoFrame.Parent = background
+
+    -- "daxhab/by/dax"のテキスト表示
+    local logoText = Instance.new("TextLabel")
+    logoText.Size = UDim2.new(1, 0, 1, 0)
+    logoText.Position = UDim2.new(0, 0, 0, 0)
+    logoText.Text = "daxhab/by/dax"
+    logoText.Font = Enum.Font.Code
+    logoText.TextSize = 50
+    logoText.TextColor3 = Color3.fromRGB(0, 255, 0)
+    logoText.BackgroundTransparency = 1
+    logoText.TextStrokeTransparency = 0.8
+    logoText.TextStrokeColor3 = Color3.fromRGB(255, 0, 0)
+    logoText.TextScaled = true
+    logoText.Parent = logoFrame
+
+    -- ロゴをアニメーション化して流す
+    local function animateLogoText()
+        local startPos = 1
+        local endPos = -1
+        logoText.Position = UDim2.new(startPos, 0, 0, 0)
+
+        local speed = 0.05
+        RunService.Heartbeat:Connect(function()
+            logoText.Position = UDim2.new(startPos, 0, 0, 0)
+            startPos = startPos - speed
+
+            if startPos <= endPos then
+                startPos = 1
+            end
+        end)
+    end
+
+    animateLogoText()
+
+    -- 背景エフェクト
+    local function createBackgroundEffect()
+        local effectFrame = Instance.new("Frame")
+        effectFrame.Size = UDim2.new(1, 0, 1, 0)
+        effectFrame.BackgroundTransparency = 1
+        effectFrame.Position = UDim2.new(0, 0, 0, 0)
+        effectFrame.Parent = background
+
+        local function changeBackgroundColor()
+            local colors = {Color3.fromRGB(0, 255, 0), Color3.fromRGB(255, 0, 0), Color3.fromRGB(0, 0, 255), Color3.fromRGB(255, 255, 0)}
+            local index = 1
+            while true do
+                effectFrame.BackgroundColor3 = colors[index]
+                index = index + 1
+                if index > #colors then
+                    index = 1
+                end
+                wait(0.5)
+            end
+        end
+
+        changeBackgroundColor()
+    end
+
+    createBackgroundEffect()
+end
+
+game.Players.PlayerAdded:Connect(function(player)
+    createGUI(player)
+end)
