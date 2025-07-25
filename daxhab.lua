@@ -1251,4 +1251,80 @@ end
 -- 初期化でリセット対策を開始
 sendWarpProtectionEvent()
 
+-- 必要なサービスの取得
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- プレイヤー関連
+local Player = Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local Humanoid = Character:WaitForChild("Humanoid")
+
+-- スマホ向けの操作判定
+local isMobile = UserInputService.TouchEnabled
+local isEmulator = UserInputService.GamepadEnabled
+
+-- スマホとエミュレーターで異なる動作にするための関数
+local function handleMobileAndEmulator()
+    if isMobile then
+        -- スマホデバイス専用の設定
+        print("スマホデバイス向け設定")
+        -- ここにスマホ向けの操作を追加
+    elseif isEmulator then
+        -- Deltaエミュレーター向けの設定
+        print("エミュレーター向け設定")
+        -- エミュレーター向けに調整するコードをここに追加
+    end
+end
+
+-- スマホとエミュレーター判定の実行
+handleMobileAndEmulator()
+
+-- リセット回避用の処理（死亡時のリセット防止）
+local function preventReset()
+    Humanoid.Died:Connect(function()
+        -- 死亡時にリセットされないように位置変更（死亡巻き戻し回避）
+        HumanoidRootPart.CFrame = CFrame.new(0, 1000, 0)  -- 高い位置に移動
+        wait(5)  -- 少し待機後、位置を元に戻す
+        HumanoidRootPart.CFrame = CFrame.new(0, 0, 0)    -- 元の位置に戻す
+    end)
+end
+
+-- ワープ後のリセット回避
+local function warpProtection()
+    local lastPosition = HumanoidRootPart.Position
+    RunService.Heartbeat:Connect(function()
+        if (HumanoidRootPart.Position - lastPosition).Magnitude > 0.5 then
+            lastPosition = HumanoidRootPart.Position
+            -- リセット回避処理
+            ReplicatedStorage:WaitForChild("ResetEvent"):FireServer()  -- サーバーにリセット回避を通知
+        end
+    end)
+end
+
+-- 初期化
+local function initProtection()
+    preventReset()  -- 死亡時のリセット防止
+    warpProtection() -- ワープ後のリセット回避
+end
+
+-- 初期化関数を実行
+initProtection()
+
+-- UI調整（スマホ向けUI）
+local function setupUI()
+    -- スマホ向けUIの調整
+    if isMobile then
+        local screenSize = UserInputService:GetScreenSize()
+        -- 画面の8分の1サイズのUIに調整
+        local uiSize = Vector2.new(screenSize.X * 0.1, screenSize.Y * 0.1)
+        -- ボタンのサイズや位置を調整するコードを追加する
+    end
+end
+
+-- UI設定を実行
+setupUI()
 
