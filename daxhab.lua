@@ -1,29 +1,30 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- === UI 作成 ===
+-- ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DaxhabUI"
 screenGui.Parent = playerGui
 screenGui.IgnoreGuiInset = true
 screenGui.ResetOnSpawn = false
 
+-- 背景フレーム（ドラッグ可能）
 local bg = Instance.new("Frame")
 bg.BackgroundColor3 = Color3.new(0,0,0)
 bg.BackgroundTransparency = 0
-bg.Size = UDim2.new(0.33,0,0.33,0)
-bg.Position = UDim2.new(0.02,0,0.65,0)
+bg.Size = UDim2.new(0.33,0,0.5,0) -- 横幅1/3、高さ1/2
+bg.Position = UDim2.new(0.02,0,0.48,0)
 bg.BorderSizePixel = 1
 bg.BorderColor3 = Color3.fromRGB(0,255,0)
-bg.Parent = screenGui
 bg.Active = true
 bg.Draggable = true
+bg.Parent = screenGui
 
+-- 浮遊ロゴテキスト
 local floatingText = Instance.new("TextLabel")
 floatingText.Text = "daxhab / by / dax"
 floatingText.TextColor3 = Color3.fromRGB(0,255,0)
@@ -34,11 +35,12 @@ floatingText.Size = UDim2.new(1,0,0.12,0)
 floatingText.Position = UDim2.new(0,0,0.02,0)
 floatingText.Parent = bg
 
+-- ログ用スクロールフレーム
 local logFrame = Instance.new("ScrollingFrame")
 logFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
 logFrame.BackgroundTransparency = 0
-logFrame.Size = UDim2.new(0.95,0,0.3,0)
-logFrame.Position = UDim2.new(0.025,0,0.65,0)
+logFrame.Size = UDim2.new(0.95,0,0.6,0) -- 画面の約60%の高さ
+logFrame.Position = UDim2.new(0.025,0,0.3,0)
 logFrame.BorderSizePixel = 0
 logFrame.ScrollBarThickness = 6
 logFrame.CanvasSize = UDim2.new(0,0,5,0)
@@ -69,10 +71,11 @@ local function addLog(message)
     end)()
 end
 
+-- ボタン作成関数
 local function createButton(text, posY)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9,0,0.15,0)
-    btn.Position = UDim2.new(0.05,0,posY,0)
+    btn.Size = UDim2.new(0.6,0,0.12,0) -- 横幅狭め、高さ小さめ
+    btn.Position = UDim2.new(0.2,0,posY,0)
     btn.BackgroundColor3 = Color3.fromRGB(0,120,0)
     btn.TextColor3 = Color3.fromRGB(0,255,0)
     btn.Font = Enum.Font.Code
@@ -83,11 +86,12 @@ local function createButton(text, posY)
     return btn
 end
 
-local warpBtn = createButton("ワープ", 0.4)
-local protectBtn = createButton("保護OFF", 0.6)
+local warpBtn = createButton("ワープ", 0.1)
+local protectBtn = createButton("保護OFF", 0.25)
 protectBtn.BackgroundColor3 = Color3.fromRGB(120,0,0)
 protectBtn.TextColor3 = Color3.fromRGB(255,0,0)
 
+-- 効果音
 local beep = Instance.new("Sound")
 beep.SoundId = "rbxassetid://911882487"
 beep.Volume = 0.25
@@ -172,42 +176,46 @@ end
 
 local function safeWarp()
     local character = player.Character or player.CharacterAdded:Wait()
-    if not character or not character:FindFirstChild("HumanoidRootPart") then
-        addLog("キャラ未ロード")
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if not root then
+        addLog("RootPartなしでワープ中止")
         return
     end
-    local root = character.HumanoidRootPart
 
     addLog("ワープ開始...")
     playBeep()
 
     setNetworkOwner(root)
 
-    if protectEnabled then
-        enableProtection(character)
+    local wasAnchored = root.Anchored
+    if wasAnchored then
+        root.Anchored = false
     end
 
-    local targetPos = root.Position + Vector3.new(0, 15, 0) -- ←ここが真上15スタッド
+    local targetPos = root.Position + Vector3.new(0, 12, 0)
     local targetCFrame = CFrame.new(targetPos)
 
-    local tweenInfo = TweenInfo.new(0.35, Enum.EasingStyle.Linear)
+    local tweenInfo = TweenInfo.new(3, Enum.EasingStyle.Linear)
     local tween = TweenService:Create(root, tweenInfo, {CFrame = targetCFrame})
     tween:Play()
     tween.Completed:Wait()
 
     startWarpCorrection(root, targetCFrame)
 
+    if protectEnabled and wasAnchored then
+        root.Anchored = true
+    end
+
     if protectEnabled then
-        wait(0.15)
+        enableProtection(character)
+    else
         disableProtection(character)
     end
 
     addLog("ワープ成功！")
 end
 
-warpBtn.MouseButton1Click:Connect(function()
-    safeWarp()
-end)
+warpBtn.MouseButton1Click:Connect(safeWarp)
 
 protectBtn.MouseButton1Click:Connect(function()
     protectEnabled = not protectEnabled
