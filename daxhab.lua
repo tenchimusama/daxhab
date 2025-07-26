@@ -181,7 +181,7 @@ end
 -- 透明化ボタン
 local invisibleButton = Instance.new("TextButton")
 invisibleButton.Size = UDim2.new(0.65, 0, 0.15, 0)
-invisibleButton.Position = UDim2.new(0.025, 0, 0.70, 0)
+invisibleButton.Position = UDim2.new(0.025, 0, 0.7, 0)
 invisibleButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 invisibleButton.TextColor3 = Color3.fromRGB(0, 255, 0)
 invisibleButton.Font = Enum.Font.Code
@@ -193,7 +193,7 @@ invisibleButton.MouseButton1Click:Connect(function()
     makeInvisible()
 end)
 
--- 座標変更ボタン（設定されたスタッド数で）
+-- 座標変更ボタン
 local changeCoordsButton = Instance.new("TextButton")
 changeCoordsButton.Size = UDim2.new(0.65, 0, 0.15, 0)
 changeCoordsButton.Position = UDim2.new(0.025, 0, 0.85, 0)
