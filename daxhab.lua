@@ -164,6 +164,40 @@ local function safeWarp(height)
     end)
 end
 
+-- 透明化機能の実装
+local function makeInvisible()
+    local char = player.Character
+    if not char then return end
+    for _, obj in ipairs(char:GetChildren()) do
+        if obj:IsA("BasePart") then
+            obj.Transparency = 1
+        elseif obj:IsA("Accessory") then
+            obj.Handle.Transparency = 1
+        end
+    end
+    addLog("透明化完了")
+end
+
+-- 常に保護機能を有効にする
+local function enableProtection()
+    local character = player.Character
+    if character then
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.Health = humanoid.MaxHealth -- HPを最大にする
+            humanoid.Died:Connect(function()
+                -- 死亡時に復活させる
+                if humanoid.Health <= 0 then
+                    humanoid.Health = humanoid.MaxHealth
+                end
+            end)
+        end
+    end
+end
+
+-- 常に保護を有効に
+enableProtection()
+
 -- ワープボタン
 local warpButton = Instance.new("TextButton")
 warpButton.Size = UDim2.new(0.4, 0, 0.1, 0)
@@ -182,93 +216,6 @@ warpButton.MouseButton1Click:Connect(function()
         return
     end
     safeWarp(val)
-end)
-
--- 透明化ボタン
-local transparencyButton = Instance.new("TextButton")
-transparencyButton.Size = UDim2.new(0.65, 0, 0.15, 0)
-transparencyButton.Position = UDim2.new(0.025, 0, 0.85, 0)
-transparencyButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-transparencyButton.TextColor3 = Color3.fromRGB(0, 255, 0)
-transparencyButton.Font = Enum.Font.Code
-transparencyButton.TextScaled = true
-transparencyButton.Text = "[ 透明化 ]"
-transparencyButton.Parent = mainFrame
-
--- 保護ボタン
-local protectionButton = Instance.new("TextButton")
-protectionButton.Size = UDim2.new(0.65, 0, 0.15, 0)
-protectionButton.Position = UDim2.new(0.025, 0, 0.7, 0)
-protectionButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-protectionButton.TextColor3 = Color3.fromRGB(0, 255, 0)
-protectionButton.Font = Enum.Font.Code
-protectionButton.TextScaled = true
-protectionButton.Text = "[ 保護 ]"
-protectionButton.Parent = mainFrame
-
-local protected = false
-
-local function toggleProtection()
-    protected = not protected
-    if protected then
-        addLog("保護中: ダメージ無効化")
-        -- ダメージ無効化処理
-        local character = player.Character
-        if character then
-            local humanoid = character:FindFirstChild("Humanoid")
-            if humanoid then
-                humanoid.Died:Connect(function()
-                    -- 死亡時の処理（保護が有効な場合死なない）
-                    if protected then
-                        humanoid.Health = humanoid.MaxHealth
-                    end
-                end)
-            end
-        end
-    else
-        addLog("保護解除")
-    end
-end
-
-protectionButton.MouseButton1Click:Connect(function()
-    toggleProtection()
-end)
-
--- ワープ時のビープ音（軽量サウンド）
-local beepSound = Instance.new("Sound")
-beepSound.SoundId = "rbxassetid://911882704" -- 短いビープ音
-beepSound.Volume = 0.6
-beepSound.Parent = mainFrame
-
-local function animateButton(btn)
-    TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
-        BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-    }):Play()
-    beepSound:Play()
-    task.wait(0.2)
-    TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
-        BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    }):Play()
-end
-
--- 透明化機能の実装
-local function makeInvisible()
-    local char = player.Character
-    if not char then return end
-    for _, obj in ipairs(char:GetChildren()) do
-        if obj:IsA("BasePart") then
-            obj.Transparency = 1
-        elseif obj:IsA("Accessory") then
-            obj.Handle.Transparency = 1
-        end
-    end
-    addLog("透明化完了")
-end
-
-transparencyButton.MouseButton1Click:Connect(function()
-    animateButton(transparencyButton)
-    makeInvisible()
-    addLog("透明化中...")
 end)
 
 -- 起動メッセージ
