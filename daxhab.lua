@@ -188,48 +188,34 @@ invisibleButton.MouseButton1Click:Connect(function()
     makeInvisible()
 end)
 
--- 座標変更機能
+-- 座標変更
 local function changeCoordinates()
     local character = player.Character or player.CharacterAdded:Wait()
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if not root then
-        addLog("キャラクターの主要パーツが見つかりません")
-        return
-    end
+    local root = character:WaitForChild("HumanoidRootPart")
+    
     local height = tonumber(heightInput.Text)
     if not height then
         addLog("無効なスタッド数")
         return
     end
-    local offset = Vector3.new(0, height, 0)
-    local rayParams = RaycastParams.new()
-    rayParams.FilterDescendantsInstances = {character}
-    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-    local rayResult = workspace:Raycast(root.Position, offset, rayParams)
-
-    local targetCFrame
-    if rayResult then
-        targetCFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
-        addLog("障害物検知、貫通位置に調整")
-    else
-        targetCFrame = root.CFrame + offset
-    end
-
-    root.CFrame = targetCFrame
-    addLog("座標変更成功（↑" .. tostring(height) .. " stud）")
+    local targetPosition = root.Position + Vector3.new(0, height, 0)
+    
+    -- プレイヤーの位置を直接変更
+    root.CFrame = CFrame.new(targetPosition)
+    addLog("座標変更成功: " .. tostring(targetPosition))
 end
 
 -- 座標変更ボタン
-local moveButton = Instance.new("TextButton")
-moveButton.Size = UDim2.new(0.65, 0, 0.15, 0)
-moveButton.Position = UDim2.new(0.025, 0, 0.85, 0)
-moveButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-moveButton.TextColor3 = Color3.fromRGB(0, 255, 0)
-moveButton.Font = Enum.Font.Code
-moveButton.TextScaled = true
-moveButton.Text = "[ MOVE ↑ ]"
-moveButton.Parent = mainFrame
+local changeCoordButton = Instance.new("TextButton")
+changeCoordButton.Size = UDim2.new(0.65, 0, 0.15, 0)
+changeCoordButton.Position = UDim2.new(0.025, 0, 0.85, 0)
+changeCoordButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+changeCoordButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+changeCoordButton.Font = Enum.Font.Code
+changeCoordButton.TextScaled = true
+changeCoordButton.Text = "[ CHANGE POSITION ]"
+changeCoordButton.Parent = mainFrame
 
-moveButton.MouseButton1Click:Connect(function()
+changeCoordButton.MouseButton1Click:Connect(function()
     changeCoordinates()
 end)
