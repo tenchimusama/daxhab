@@ -58,18 +58,53 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+-- ロゴ作成
+local logoText = "！daxhab！"
+local logoHolder = Instance.new("Frame")
+logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
+logoHolder.Position = UDim2.new(0, 0, 0, 0)
+logoHolder.BackgroundTransparency = 1
+logoHolder.Parent = mainFrame
+
+local logoLabels = {}
+
+for i = 1, #logoText do
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0, 15, 1, 0)
+    lbl.Position = UDim2.new(0, 15 * (i - 1), 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Font = Enum.Font.Code
+    lbl.TextScaled = true
+    lbl.Text = logoText:sub(i, i)
+    lbl.TextStrokeTransparency = 0
+    lbl.TextStrokeColor3 = Color3.new(0, 1, 0)
+    lbl.TextColor3 = Color3.fromHSV((tick() * 0.2 + i * 0.05) % 1, 1, 1)
+    lbl.Parent = logoHolder
+    table.insert(logoLabels, lbl)
+end
+
+-- 3D風アニメーション
+RunService.RenderStepped:Connect(function()
+    for i, lbl in ipairs(logoLabels) do
+        local offset = math.sin(tick() * 10 + i) * 5
+        lbl.Position = UDim2.new(0, 15 * (i - 1), 0, offset)
+        lbl.TextColor3 = Color3.fromHSV((tick() * 0.3 + i * 0.07) % 1, 1, 1)
+        lbl.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
+    end
+end)
+
 -- ログ表示枠（スクロール対応）
 local logBox = Instance.new("ScrollingFrame")
 logBox.Size = UDim2.new(1, -10, 0.5, -10)
 logBox.Position = UDim2.new(0, 5, 0.2, 5)
 logBox.BackgroundColor3 = Color3.new(0, 0, 0)
 logBox.ScrollBarThickness = 6
-logBox.CanvasSize = UDim2.new(0, 0, 0, 0)  -- スクロール領域のサイズ
 logBox.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 0)
+logBox.ClipsDescendants = true
 logBox.Parent = mainFrame
 
 local logText = Instance.new("TextLabel")
-logText.Size = UDim2.new(1, 0, 1, 0)
+logText.Size = UDim2.new(1, 0, 0, 0)
 logText.Position = UDim2.new(0, 0, 0, 0)
 logText.BackgroundTransparency = 1
 logText.Font = Enum.Font.Code
@@ -79,9 +114,11 @@ logText.TextWrapped = true
 logText.Text = "作成者: dax"
 logText.Parent = logBox
 
+-- ログ追加関数（自動スクロール）
 local function addLog(text)
     logText.Text = logText.Text .. "\n> " .. text
-    logBox.CanvasSize = UDim2.new(0, 0, 0, logText.TextBounds.Y)  -- スクロール領域を更新
+    logBox.CanvasSize = UDim2.new(0, 0, 0, logText.TextBounds.Y)  -- スクロール領域のサイズを更新
+    logBox.ScrollPosition = Vector2.new(0, logBox.CanvasSize.Y.Offset)  -- 自動的にスクロール
 end
 
 -- スタッド入力欄
@@ -142,7 +179,6 @@ local function safeWarp(height)
         humanoid.Health = humanoid.MaxHealth -- 死なないように
     end
 
-    -- 固まらないようにする
     local startTime = tick()
     local conn
     conn = RunService.Heartbeat:Connect(function()
@@ -163,9 +199,9 @@ local function safeWarp(height)
     end)
 end
 
--- ワープボタン（サイズを統一）
+-- ワープボタン（大きさ統一）
 local warpButton = Instance.new("TextButton")
-warpButton.Size = UDim2.new(0.65, 0, 0.15, 0)
+warpButton.Size = UDim2.new(0.65, 0, 0.12, 0)
 warpButton.Position = UDim2.new(0.025, 0, 0.75, 0)
 warpButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 warpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -183,9 +219,9 @@ warpButton.MouseButton1Click:Connect(function()
     safeWarp(val)
 end)
 
--- 透明化ボタン
+-- 透明化ボタン（大きさ統一）
 local transparencyButton = Instance.new("TextButton")
-transparencyButton.Size = UDim2.new(0.65, 0, 0.15, 0)
+transparencyButton.Size = UDim2.new(0.65, 0, 0.12, 0)
 transparencyButton.Position = UDim2.new(0.025, 0, 0.85, 0)
 transparencyButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 transparencyButton.TextColor3 = Color3.fromRGB(0, 255, 0)
