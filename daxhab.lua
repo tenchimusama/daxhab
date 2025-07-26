@@ -94,22 +94,32 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ログ表示枠（スクロール対応）
-local logBox = Instance.new("TextLabel")
+local logBox = Instance.new("ScrollingFrame")
 logBox.Size = UDim2.new(1, -10, 0.5, -10)
 logBox.Position = UDim2.new(0, 5, 0.2, 5)
 logBox.BackgroundColor3 = Color3.new(0, 0, 0)
+logBox.ScrollingEnabled = true
+logBox.VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Left
 logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
 logBox.Font = Enum.Font.Code
-logBox.TextXAlignment = Enum.TextXAlignment.Left
-logBox.TextYAlignment = Enum.TextYAlignment.Top
 logBox.TextSize = 14
 logBox.TextWrapped = true
-logBox.Text = "作成者: dax"
 logBox.ClipsDescendants = true
 logBox.Parent = mainFrame
 
 local function addLog(text)
-    logBox.Text = logBox.Text .. "\n> " .. text
+    local newLabel = Instance.new("TextLabel")
+    newLabel.Size = UDim2.new(1, 0, 0, 20)
+    newLabel.BackgroundTransparency = 1
+    newLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+    newLabel.Font = Enum.Font.Code
+    newLabel.TextSize = 14
+    newLabel.Text = "> " .. text
+    newLabel.TextWrapped = true
+    newLabel.TextXAlignment = Enum.TextXAlignment.Left
+    newLabel.TextYAlignment = Enum.TextYAlignment.Top
+    newLabel.Parent = logBox
+    logBox.CanvasPosition = Vector2.new(0, logBox.CanvasSize.Y.Offset)  -- 自動スクロール
 end
 
 -- スタッド入力欄
@@ -191,7 +201,7 @@ local function safeWarp(height)
     end)
 end
 
--- ワープボタン（中央配置）
+-- ワープボタン
 local warpButton = Instance.new("TextButton")
 warpButton.Size = UDim2.new(0.4, 0, 0.1, 0)
 warpButton.Position = UDim2.new(0.3, 0, 0.75, 0)
@@ -260,4 +270,3 @@ end)
 
 -- 起動メッセージ
 addLog("起動完了: ！daxhab！ / 作成者: dax")
-
