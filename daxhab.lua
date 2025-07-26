@@ -17,20 +17,6 @@ player.Idled:Connect(function()
 end)
 StarterGui:SetCore("ResetButtonCallback", false)
 
--- デバイス検出およびデルタエグゼキューター対応
-local function isDeltaExecutor()
-    if player.Name == "DeltaExecutor" then
-        return true
-    end
-    -- 他のエクスプロイターのチェックを追加する場合ここで対応
-    return false
-end
-
--- エクスプロイター検出
-if isDeltaExecutor() then
-    error("不正なエクスプロイターが検出されました。")
-end
-
 -- UI構築
 local playerGui = player:WaitForChild("PlayerGui")
 local screenGui = Instance.new("ScreenGui")
@@ -48,7 +34,7 @@ mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Parent = screenGui
 
--- ドラッグ処理（スマホ対応）
+-- ドラッグ処理
 local dragging, dragInput, dragStart, startPos
 mainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -72,28 +58,68 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ログ表示枠（スクロール可能）
-local logBox = Instance.new("TextLabel")
-logBox.Size = UDim2.new(1, -10, 0.5, -10)
-logBox.Position = UDim2.new(0, 5, 0.2, 5)
-logBox.BackgroundColor3 = Color3.new(0, 0, 0)
-logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
-logBox.Font = Enum.Font.Code
-logBox.TextXAlignment = Enum.TextXAlignment.Left
-logBox.TextYAlignment = Enum.TextYAlignment.Top
-logBox.TextSize = 14
-logBox.TextWrapped = true
-logBox.Text = "作成者: dax"
-logBox.ClipsDescendants = true
-logBox.Parent = mainFrame
+-- 3Dロゴ作成（元の表示に戻す）
+local logoText = "！daxhab！"
+local logoHolder = Instance.new("Frame")
+logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
+logoHolder.Position = UDim2.new(0, 0, 0, 0)
+logoHolder.BackgroundTransparency = 1
+logoHolder.Parent = mainFrame
 
-local function addLog(text)
-    logBox.Text = logBox.Text .. "\n> " .. text
-    -- スクロール
-    logBox.CanvasPosition = Vector2.new(0, logBox.TextBounds.Y - logBox.AbsoluteSize.Y)
+local logoLabels = {}
+
+for i = 1, #logoText do
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0, 15, 1, 0)
+    lbl.Position = UDim2.new(0, 15 * (i - 1), 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Font = Enum.Font.Code
+    lbl.TextScaled = true
+    lbl.Text = logoText:sub(i, i)
+    lbl.TextStrokeTransparency = 0
+    lbl.TextStrokeColor3 = Color3.new(0, 1, 0)
+    lbl.TextColor3 = Color3.fromHSV((tick() * 0.15 + i * 0.05) % 1, 1, 1)
+    lbl.Parent = logoHolder
+    table.insert(logoLabels, lbl)
 end
 
--- スタッド入力欄
+-- 3D風アニメーション（元のまま）
+RunService.RenderStepped:Connect(function()
+    for i, lbl in ipairs(logoLabels) do
+        local offset = math.sin(tick() * 8 + i) * 5
+        lbl.Position = UDim2.new(0, 15 * (i - 1), 0, offset)
+        lbl.TextColor3 = Color3.fromHSV((tick() * 0.25 + i * 0.07) % 1, 1, 1)
+        lbl.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
+    end
+end)
+
+-- ✅ スクロール可能ログ（元の表示に戻す）
+local logFrame = Instance.new("ScrollingFrame")
+logFrame.Size = UDim2.new(1, -10, 0.5, -10)
+logFrame.Position = UDim2.new(0, 5, 0.2, 5)
+logFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+logFrame.ScrollBarThickness = 6
+logFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+logFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+logFrame.Parent = mainFrame
+
+local UIListLayout = Instance.new("UIListLayout", logFrame)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local function addLog(text)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 0, 18)
+    lbl.BackgroundTransparency = 1
+    lbl.TextColor3 = Color3.fromRGB(0, 255, 0)
+    lbl.Font = Enum.Font.Code
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Text = "> " .. text
+    lbl.Parent = logFrame
+    task.wait()
+    logFrame.CanvasPosition = Vector2.new(0, logFrame.AbsoluteCanvasSize.Y)
+end
+
+-- スタッド入力欄（元の表示に戻す）
 local heightInput = Instance.new("TextBox")
 heightInput.Size = UDim2.new(0.3, 0, 0.12, 0)
 heightInput.Position = UDim2.new(0.68, 0, 0.63, 0)
@@ -125,98 +151,57 @@ heightInput:GetPropertyChangedSignal("Text"):Connect(function()
     end
 end)
 
--- ワープ関数（座標変更）
-local function safeWarp(height)
+-- 常時保護（ON/OFF切り替えなし）
+local protectionEnabled = true  -- 常時保護はONに設定
+
+local function protectCharacter()
     local char = player.Character or player.CharacterAdded:Wait()
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then
-        addLog("HumanoidRootPart not found")
-        return
-    end
+    local humanoid = char:WaitForChild("Humanoid")
+    local root = char:WaitForChild("HumanoidRootPart")
 
-    local h = tonumber(height) or 40
-    local targetPos = root.Position + Vector3.new(0, h, 0)
+    humanoid.BreakJointsOnDeath = false
 
-    root.CFrame = CFrame.new(targetPos)
-    addLog("Warped ↑ "..tostring(h).." studs")
-
-    pcall(function()
-        root:SetNetworkOwner(player)
+    humanoid.StateChanged:Connect(function(_, new)
+        if new == Enum.HumanoidStateType.Dead then
+            addLog("死亡検出 - 即回復処理開始")
+            humanoid.Health = humanoid.MaxHealth
+            humanoid.PlatformStand = false
+            humanoid:ChangeState(Enum.HumanoidStateType.Running)
+        end
     end)
 
-    local startTime = tick()
-    local conn
-    conn = RunService.Heartbeat:Connect(function()
-        if tick() - startTime > 10 then
-            conn:Disconnect()
-            return
-        end
-        if root and root.Parent then
-            root.Velocity = Vector3.zero
-            root.RotVelocity = Vector3.zero
-            root.CFrame = CFrame.new(targetPos)
-            pcall(function()
-                root:SetNetworkOwner(player)
-            end)
-        else
-            conn:Disconnect()
+    RunService.Heartbeat:Connect(function()
+        if protectionEnabled then
+            if humanoid.Health < humanoid.MaxHealth then
+                humanoid.Health = humanoid.MaxHealth
+                humanoid.PlatformStand = false
+            end
+            if root and root.Parent then
+                root.Velocity = Vector3.zero
+                root.RotVelocity = Vector3.zero
+                pcall(function()
+                    root:SetNetworkOwner(player)
+                end)
+            end
         end
     end)
 end
 
--- 透明化機能の実装
+-- 透明化
 local function makeInvisible()
-    local char = player.Character
-    if not char then return end
-    for _, obj in ipairs(char:GetChildren()) do
+    local char = player.Character or player.CharacterAdded:Wait()
+    for _, obj in pairs(char:GetChildren()) do
         if obj:IsA("BasePart") then
             obj.Transparency = 1
-        elseif obj:IsA("Accessory") then
-            obj.Handle.Transparency = 1
         end
-    end
-    addLog("透明化完了")
-end
-
--- 常に保護機能を有効にする
-local function enableProtection()
-    local character = player.Character
-    if character then
-        local humanoid = character:FindFirstChild("Humanoid")
-        if humanoid then
-            humanoid.Health = humanoid.MaxHealth -- HPを最大にする
-            humanoid.Died:Connect(function()
-                -- 死亡時に復活させる
-                if humanoid.Health <= 0 then
-                    humanoid.Health = humanoid.MaxHealth
+        if obj:IsA("Accessory") then
+            for _, part in pairs(obj:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part.Transparency = 1
                 end
-            end)
+            end
         end
     end
 end
 
--- 常に保護を有効に
-enableProtection()
-
--- ワープボタン
-local warpButton = Instance.new("TextButton")
-warpButton.Size = UDim2.new(0.4, 0, 0.1, 0)
-warpButton.Position = UDim2.new(0.3, 0, 0.75, 0)
-warpButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-warpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-warpButton.Font = Enum.Font.Code
-warpButton.TextScaled = true
-warpButton.Text = "Warp"
-warpButton.Parent = mainFrame
-
-warpButton.MouseButton1Click:Connect(function()
-    local val = tonumber(heightInput.Text)
-    if not val then
-        addLog("Invalid height input")
-        return
-    end
-    safeWarp(val)
-end)
-
--- 起動メッセージ
-addLog("起動完了: ！daxhab！ / 作成者: dax")
+makeInvisible()
