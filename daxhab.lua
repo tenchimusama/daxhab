@@ -59,7 +59,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- 3Dロゴ作成
-local logoText = "< daxhab / by / dax >"
+local logoText = "< daxhab >"
 local logoHolder = Instance.new("Frame")
 logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
 logoHolder.Position = UDim2.new(0, 0, 0, 0)
@@ -109,13 +109,45 @@ logBox.TextXAlignment = Enum.TextXAlignment.Left
 logBox.TextYAlignment = Enum.TextYAlignment.Top
 logBox.TextSize = 14
 logBox.TextWrapped = true
-logBox.Text = ""
+logBox.Text = "作成者は、daxです"
 logBox.ClipsDescendants = true
 logBox.Parent = mainFrame
 
 local function addLog(text)
     logBox.Text = logBox.Text .. "\n> " .. text
 end
+
+-- スタッド数変更入力
+local heightInput = Instance.new("TextBox")
+heightInput.Size = UDim2.new(0.3, 0, 0.12, 0)
+heightInput.Position = UDim2.new(0.68, 0, 0.63, 0)
+heightInput.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+heightInput.TextColor3 = Color3.fromRGB(0, 255, 0)
+heightInput.PlaceholderText = "↑スタッド"
+heightInput.Text = "40"
+heightInput.TextScaled = true
+heightInput.Font = Enum.Font.Code
+heightInput.ClearTextOnFocus = false
+heightInput.Parent = mainFrame
+
+local currentHeight = Instance.new("TextLabel")
+currentHeight.Size = UDim2.new(0.3, 0, 0.12, 0)
+currentHeight.Position = UDim2.new(0.68, 0, 0.77, 0)
+currentHeight.BackgroundTransparency = 1
+currentHeight.TextColor3 = Color3.fromRGB(0, 255, 0)
+currentHeight.Font = Enum.Font.Code
+currentHeight.TextScaled = true
+currentHeight.Text = "↑: 40"
+currentHeight.Parent = mainFrame
+
+heightInput:GetPropertyChangedSignal("Text"):Connect(function()
+    local val = tonumber(heightInput.Text)
+    if val then
+        currentHeight.Text = "↑: " .. tostring(val)
+    else
+        currentHeight.Text = "↑: ?"
+    end
+end)
 
 -- 透明化機能
 local function makeInvisible()
@@ -157,38 +189,47 @@ invisibleButton.MouseButton1Click:Connect(function()
 end)
 
 -- 座標変更機能
-local function changePosition()
-    local height = tonumber(heightInput.Text) or 40
-    local targetPosition = Vector3.new(0, height, 0)
-    
+local function changeCoordinates()
     local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    
-    -- キャラクターをアンカーしてリセット防止
-    humanoidRootPart.Anchored = true
-    humanoidRootPart.CFrame = CFrame.new(targetPosition)
-    
-    -- プレイヤーの位置が変更されたことをログに追加
-    addLog("座標変更完了: " .. targetPosition)
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if not root then
+        addLog("キャラクターの主要パーツが見つかりません")
+        return
+    end
+    local height = tonumber(heightInput.Text)
+    if not height then
+        addLog("無効なスタッド数")
+        return
+    end
+    local offset = Vector3.new(0, height, 0)
+    local rayParams = RaycastParams.new()
+    rayParams.FilterDescendantsInstances = {character}
+    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+    local rayResult = workspace:Raycast(root.Position, offset, rayParams)
 
-    -- アンカーを元に戻す（リセット防止）
-    humanoidRootPart.Anchored = false
+    local targetCFrame
+    if rayResult then
+        targetCFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
+        addLog("障害物検知、貫通位置に調整")
+    else
+        targetCFrame = root.CFrame + offset
+    end
+
+    root.CFrame = targetCFrame
+    addLog("座標変更成功（↑" .. tostring(height) .. " stud）")
 end
 
 -- 座標変更ボタン
-local changeCoordsButton = Instance.new("TextButton")
-changeCoordsButton.Size = UDim2.new(0.65, 0, 0.15, 0)
-changeCoordsButton.Position = UDim2.new(0.025, 0, 0.85, 0)
-changeCoordsButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-changeCoordsButton.TextColor3 = Color3.fromRGB(0, 255, 0)
-changeCoordsButton.Font = Enum.Font.Code
-changeCoordsButton.TextScaled = true
-changeCoordsButton.Text = "[ CHANGE COORDS ]"
-changeCoordsButton.Parent = mainFrame
+local moveButton = Instance.new("TextButton")
+moveButton.Size = UDim2.new(0.65, 0, 0.15, 0)
+moveButton.Position = UDim2.new(0.025, 0, 0.85, 0)
+moveButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+moveButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+moveButton.Font = Enum.Font.Code
+moveButton.TextScaled = true
+moveButton.Text = "[ MOVE ↑ ]"
+moveButton.Parent = mainFrame
 
-changeCoordsButton.MouseButton1Click:Connect(function()
-    changePosition()
+moveButton.MouseButton1Click:Connect(function()
+    changeCoordinates()
 end)
-
--- 起動完了メッセージ
-addLog("起動完了! キャラクターは透明化され、スタッド数を設定して座標変更ボタンをクリックしてください。")
