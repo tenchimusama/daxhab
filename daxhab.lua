@@ -78,7 +78,7 @@ for i = 1, #logoText do
     lbl.Text = logoText:sub(i, i)
     lbl.TextStrokeTransparency = 0
     lbl.TextStrokeColor3 = Color3.new(0, 1, 0)
-    lbl.TextColor3 = Color3.fromHSV((tick() * 0.2 + i * 0.05) % 1, 1, 1)
+    lbl.TextColor3 = Color3.fromHSV((tick() * 0.15 + i * 0.05) % 1, 1, 1)
     lbl.Parent = logoHolder
     table.insert(logoLabels, lbl)
 end
@@ -86,9 +86,9 @@ end
 -- 3D風アニメーション
 RunService.RenderStepped:Connect(function()
     for i, lbl in ipairs(logoLabels) do
-        local offset = math.sin(tick() * 10 + i) * 5
+        local offset = math.sin(tick() * 8 + i) * 5
         lbl.Position = UDim2.new(0, 15 * (i - 1), 0, offset)
-        lbl.TextColor3 = Color3.fromHSV((tick() * 0.3 + i * 0.07) % 1, 1, 1)
+        lbl.TextColor3 = Color3.fromHSV((tick() * 0.25 + i * 0.07) % 1, 1, 1)
         lbl.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
     end
 end)
@@ -151,10 +151,11 @@ heightInput:GetPropertyChangedSignal("Text"):Connect(function()
     end
 end)
 
--- ワープ関数（座標変更）
+-- ワープ関数（改良版）
 local function safeWarp(height)
     local char = player.Character or player.CharacterAdded:Wait()
     local root = char:FindFirstChild("HumanoidRootPart")
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not root then
         addLog("HumanoidRootPart not found")
         return
@@ -163,34 +164,54 @@ local function safeWarp(height)
     local h = tonumber(height) or 40
     local targetPos = root.Position + Vector3.new(0, h, 0)
 
+    -- ワープ前の安全措置
+    if humanoid then
+        humanoid.PlatformStand = false
+        humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+        humanoid.Health = humanoid.MaxHealth
+    end
+
+    -- ワープ実行
     root.CFrame = CFrame.new(targetPos)
+    root.Velocity = Vector3.zero
+    root.RotVelocity = Vector3.zero
+
     addLog("Warped ↑ "..tostring(h).." studs")
 
+    -- ネットワーク所有権強制
     pcall(function()
         root:SetNetworkOwner(player)
     end)
 
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        humanoid.Health = humanoid.MaxHealth
-    end
-
+    -- 10秒間の巻き戻し防止ループ
     local startTime = tick()
     local conn
     conn = RunService.Heartbeat:Connect(function()
         if tick() - startTime > 10 then
             conn:Disconnect()
+            if humanoid then
+                humanoid.PlatformStand = false
+                humanoid:ChangeState(Enum.HumanoidStateType.Running)
+            end
+            addLog("Warp protection ended")
             return
         end
         if root and root.Parent then
+            root.CFrame = CFrame.new(targetPos)
             root.Velocity = Vector3.zero
             root.RotVelocity = Vector3.zero
-            root.CFrame = CFrame.new(targetPos)
             pcall(function()
                 root:SetNetworkOwner(player)
             end)
+            if humanoid and humanoid.Health < humanoid.MaxHealth then
+                humanoid.Health = humanoid.MaxHealth
+            end
+            if humanoid and humanoid.PlatformStand then
+                humanoid.PlatformStand = false
+            end
         else
             conn:Disconnect()
+            addLog("Warp protection aborted: RootPart missing")
         end
     end)
 end
@@ -229,12 +250,15 @@ transparencyButton.Parent = mainFrame
 local function makeInvisible()
     local char = player.Character or player.CharacterAdded:Wait()
     if char then
-        for _, obj in pairs(char:GetChildren()) do
+        for _, obj in pairs(char:GetDescendants()) do
             if obj:IsA("BasePart") then
                 obj.Transparency = 1
                 obj.CanCollide = false
+            elseif obj:IsA("Decal") then
+                obj.Transparency = 1
             end
         end
+        addLog("Character fully invisible (including accessories/tools)")
     end
 end
 
@@ -249,7 +273,7 @@ local function animateButton(btn)
         BackgroundColor3 = Color3.fromRGB(0, 100, 0)
     }):Play()
     beepSound:Play()
-    task.wait(0.2)
+    task.wait(0.15)
     TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
         BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     }):Play()
@@ -265,12 +289,15 @@ end)
 local function protectCharacter()
     local char = player.Character or player.CharacterAdded:Wait()
     local humanoid = char:WaitForChild("Humanoid")
+    local root = char:WaitForChild("HumanoidRootPart")
 
     humanoid.BreakJointsOnDeath = false
 
     humanoid.StateChanged:Connect(function(_, new)
         if new == Enum.HumanoidStateType.Dead then
+            addLog("死亡検出 - 即回復処理開始")
             humanoid.Health = humanoid.MaxHealth
+            humanoid.PlatformStand = false
             humanoid:ChangeState(Enum.HumanoidStateType.Running)
         end
     end)
@@ -278,14 +305,15 @@ local function protectCharacter()
     RunService.Heartbeat:Connect(function()
         if humanoid.Health < humanoid.MaxHealth then
             humanoid.Health = humanoid.MaxHealth
+            humanoid.PlatformStand = false
         end
-    end)
-
-    local root = char:WaitForChild("HumanoidRootPart")
-    RunService.Heartbeat:Connect(function()
-        pcall(function()
-            root:SetNetworkOwner(player)
-        end)
+        if root and root.Parent then
+            root.Velocity = Vector3.zero
+            root.RotVelocity = Vector3.zero
+            pcall(function()
+                root:SetNetworkOwner(player)
+            end)
+        end
     end)
 end
 
