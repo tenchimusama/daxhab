@@ -10,10 +10,10 @@ local player = Players.LocalPlayer
 
 -- アンチキック＆Idled無効化
 player.Idled:Connect(function()
-    local VirtualUser = game:GetService("VirtualUser")
-    VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-    wait(1)
-    VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    local VirtualUser = game:GetService("VirtualUser")
+    VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    wait(1)
+    VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
 end)
 StarterGui:SetCore("ResetButtonCallback", false)
 
@@ -37,25 +37,25 @@ mainFrame.Parent = screenGui
 -- ドラッグ処理
 local dragging, dragInput, dragStart, startPos
 mainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = mainFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
-    end
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
 end)
 mainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
 end)
 RunService.RenderStepped:Connect(function()
-    if dragging and dragInput then
-        local delta = dragInput.Position - dragStart
-        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
+    if dragging and dragInput then
+        local delta = dragInput.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
 end)
 
 -- 3Dロゴ作成
@@ -69,31 +69,31 @@ logoHolder.Parent = mainFrame
 local logoLabels = {}
 
 for i = 1, #logoText do
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(0, 15, 1, 0)
-    lbl.Position = UDim2.new(0, 15 * (i - 1), 0, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Font = Enum.Font.Code
-    lbl.TextScaled = true
-    lbl.Text = logoText:sub(i, i)
-    lbl.TextStrokeTransparency = 0
-    lbl.TextStrokeColor3 = Color3.new(0, 1, 0)
-    lbl.TextColor3 = Color3.fromHSV((tick() * 0.2 + i * 0.05) % 1, 1, 1)
-    lbl.Parent = logoHolder
-    table.insert(logoLabels, lbl)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0, 15, 1, 0)
+    lbl.Position = UDim2.new(0, 15 * (i - 1), 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Font = Enum.Font.Code
+    lbl.TextScaled = true
+    lbl.Text = logoText:sub(i, i)
+    lbl.TextStrokeTransparency = 0
+    lbl.TextStrokeColor3 = Color3.new(0, 1, 0)
+    lbl.TextColor3 = Color3.fromHSV((tick() * 0.2 + i * 0.05) % 1, 1, 1)
+    lbl.Parent = logoHolder
+    table.insert(logoLabels, lbl)
 end
 
 -- 3D風アニメーション
 RunService.RenderStepped:Connect(function()
-    for i, lbl in ipairs(logoLabels) do
-        local offset = math.sin(tick() * 10 + i) * 5
-        lbl.Position = UDim2.new(0, 15 * (i - 1), 0, offset)
-        lbl.TextColor3 = Color3.fromHSV((tick() * 0.3 + i * 0.07) % 1, 1, 1)
-        lbl.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
-    end
+    for i, lbl in ipairs(logoLabels) do
+        local offset = math.sin(tick() * 10 + i) * 5
+        lbl.Position = UDim2.new(0, 15 * (i - 1), 0, offset)
+        lbl.TextColor3 = Color3.fromHSV((tick() * 0.3 + i * 0.07) % 1, 1, 1)
+        lbl.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
+    end
 end)
 
--- ログ表示枠
+-- ログ表示枠（スクロール可能）
 local logBox = Instance.new("TextLabel")
 logBox.Size = UDim2.new(1, -10, 0.5, -10)
 logBox.Position = UDim2.new(0, 5, 0.2, 5)
@@ -109,7 +109,9 @@ logBox.ClipsDescendants = true
 logBox.Parent = mainFrame
 
 local function addLog(text)
-    logBox.Text = logBox.Text .. "\n> " .. text
+    logBox.Text = logBox.Text .. "\n> " .. text
+    -- スクロール
+    logBox.CanvasPosition = Vector2.new(0, logBox.TextBounds.Y - logBox.AbsoluteSize.Y)
 end
 
 -- スタッド入力欄
@@ -136,51 +138,51 @@ currentHeight.Text = "↑: 40"
 currentHeight.Parent = mainFrame
 
 heightInput:GetPropertyChangedSignal("Text"):Connect(function()
-    local val = tonumber(heightInput.Text)
-    if val then
-        currentHeight.Text = "↑: " .. tostring(val)
-    else
-        currentHeight.Text = "↑: ?"
-    end
+    local val = tonumber(heightInput.Text)
+    if val then
+        currentHeight.Text = "↑: " .. tostring(val)
+    else
+        currentHeight.Text = "↑: ?"
+    end
 end)
 
 -- ワープ関数（座標変更）
 local function safeWarp(height)
-    local char = player.Character or player.CharacterAdded:Wait()
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then
-        addLog("HumanoidRootPart not found")
-        return
-    end
+    local char = player.Character or player.CharacterAdded:Wait()
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then
+        addLog("HumanoidRootPart not found")
+        return
+    end
 
-    local h = tonumber(height) or 40
-    local targetPos = root.Position + Vector3.new(0, h, 0)
+    local h = tonumber(height) or 40
+    local targetPos = root.Position + Vector3.new(0, h, 0)
 
-    root.CFrame = CFrame.new(targetPos)
-    addLog("Warped ↑ "..tostring(h).." studs")
+    root.CFrame = CFrame.new(targetPos)
+    addLog("Warped ↑ "..tostring(h).." studs")
 
-    pcall(function()
-        root:SetNetworkOwner(player)
-    end)
+    pcall(function()
+        root:SetNetworkOwner(player)
+    end)
 
-    local startTime = tick()
-    local conn
-    conn = RunService.Heartbeat:Connect(function()
-        if tick() - startTime > 10 then
-            conn:Disconnect()
-            return
-        end
-        if root and root.Parent then
-            root.Velocity = Vector3.zero
-            root.RotVelocity = Vector3.zero
-            root.CFrame = CFrame.new(targetPos)
-            pcall(function()
-                root:SetNetworkOwner(player)
-            end)
-        else
-            conn:Disconnect()
-        end
-    end)
+    local startTime = tick()
+    local conn
+    conn = RunService.Heartbeat:Connect(function()
+        if tick() - startTime > 10 then
+            conn:Disconnect()
+            return
+        end
+        if root and root.Parent then
+            root.Velocity = Vector3.zero
+            root.RotVelocity = Vector3.zero
+            root.CFrame = CFrame.new(targetPos)
+            pcall(function()
+                root:SetNetworkOwner(player)
+            end)
+        else
+            conn:Disconnect()
+        end
+    end)
 end
 
 -- ワープボタン
@@ -195,12 +197,12 @@ warpButton.Text = "Warp"
 warpButton.Parent = mainFrame
 
 warpButton.MouseButton1Click:Connect(function()
-    local val = tonumber(heightInput.Text)
-    if not val then
-        addLog("Invalid height input")
-        return
-    end
-    safeWarp(val)
+    local val = tonumber(heightInput.Text)
+    if not val then
+        addLog("Invalid height input")
+        return
+    end
+    safeWarp(val)
 end)
 
 -- 透明化ボタン
@@ -221,22 +223,35 @@ beepSound.Volume = 0.6
 beepSound.Parent = mainFrame
 
 local function animateButton(btn)
-    TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
-        BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-    }):Play()
-    beepSound:Play()
-    task.wait(0.2)
-    TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
-        BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    }):Play()
+    TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
+        BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+    }):Play()
+    beepSound:Play()
+    task.wait(0.2)
+    TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
+        BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    }):Play()
+end
+
+-- 透明化機能の実装
+local function makeInvisible()
+    local char = player.Character
+    if not char then return end
+    for _, obj in ipairs(char:GetChildren()) do
+        if obj:IsA("BasePart") then
+            obj.Transparency = 1
+        elseif obj:IsA("Accessory") then
+            obj.Handle.Transparency = 1
+        end
+    end
+    addLog("透明化完了")
 end
 
 transparencyButton.MouseButton1Click:Connect(function()
-    animateButton(transparencyButton)
-    makeInvisible()
-    addLog("透明化中...")
+    animateButton(transparencyButton)
+    makeInvisible()
+    addLog("透明化中...")
 end)
 
 -- 起動メッセージ
 addLog("起動完了: ！daxhab！ / 作成者: dax")
-
