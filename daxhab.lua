@@ -10,10 +10,10 @@ local player = Players.LocalPlayer
 
 -- アンチキック＆Idled無効化
 player.Idled:Connect(function()
-    local VirtualUser = game:GetService("VirtualUser")
-    VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-    wait(1)
-    VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    local VirtualUser = game:GetService("VirtualUser")
+    VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    wait(1)
+    VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
 end)
 StarterGui:SetCore("ResetButtonCallback", false)
 
@@ -37,25 +37,25 @@ mainFrame.Parent = screenGui
 -- ドラッグ処理
 local dragging, dragInput, dragStart, startPos
 mainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = mainFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
-    end
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
 end)
 mainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
 end)
 RunService.RenderStepped:Connect(function()
-    if dragging and dragInput then
-        local delta = dragInput.Position - dragStart
-        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
+    if dragging and dragInput then
+        local delta = dragInput.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
 end)
 
 -- 3Dロゴ作成
@@ -69,49 +69,54 @@ logoHolder.Parent = mainFrame
 local logoLabels = {}
 
 for i = 1, #logoText do
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(0, 15, 1, 0)
-    lbl.Position = UDim2.new(0, 15 * (i - 1), 0, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Font = Enum.Font.Code
-    lbl.TextScaled = true
-    lbl.Text = logoText:sub(i, i)
-    lbl.TextStrokeTransparency = 0
-    lbl.TextStrokeColor3 = Color3.new(0, 1, 0)
-    lbl.TextColor3 = Color3.fromHSV((tick() * 0.2 + i * 0.05) % 1, 1, 1)
-    lbl.Parent = logoHolder
-    table.insert(logoLabels, lbl)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0, 15, 1, 0)
+    lbl.Position = UDim2.new(0, 15 * (i - 1), 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Font = Enum.Font.Code
+    lbl.TextScaled = true
+    lbl.Text = logoText:sub(i, i)
+    lbl.TextStrokeTransparency = 0
+    lbl.TextStrokeColor3 = Color3.new(0, 1, 0)
+    lbl.TextColor3 = Color3.fromHSV((tick() * 0.15 + i * 0.05) % 1, 1, 1)
+    lbl.Parent = logoHolder
+    table.insert(logoLabels, lbl)
 end
 
 -- 3D風アニメーション
 RunService.RenderStepped:Connect(function()
-    for i, lbl in ipairs(logoLabels) do
-        local offset = math.sin(tick() * 10 + i) * 5
-        lbl.Position = UDim2.new(0, 15 * (i - 1), 0, offset)
-        lbl.TextColor3 = Color3.fromHSV((tick() * 0.3 + i * 0.07) % 1, 1, 1)
-        lbl.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
-    end
+    for i, lbl in ipairs(logoLabels) do
+        local offset = math.sin(tick() * 8 + i) * 5
+        lbl.Position = UDim2.new(0, 15 * (i - 1), 0, offset)
+        lbl.TextColor3 = Color3.fromHSV((tick() * 0.25 + i * 0.07) % 1, 1, 1)
+        lbl.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
+    end
 end)
 
--- ログ表示枠（スクロール可能）
-local logBox = Instance.new("TextLabel")
-logBox.Size = UDim2.new(1, -10, 0.5, -10)
-logBox.Position = UDim2.new(0, 5, 0.2, 5)
-logBox.BackgroundColor3 = Color3.new(0, 0, 0)
-logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
-logBox.Font = Enum.Font.Code
-logBox.TextXAlignment = Enum.TextXAlignment.Left
-logBox.TextYAlignment = Enum.TextYAlignment.Top
-logBox.TextSize = 14
-logBox.TextWrapped = true
-logBox.Text = "作成者: dax"
-logBox.ClipsDescendants = true
-logBox.Parent = mainFrame
+-- ✅ スクロール可能ログ
+local logFrame = Instance.new("ScrollingFrame")
+logFrame.Size = UDim2.new(1, -10, 0.5, -10)
+logFrame.Position = UDim2.new(0, 5, 0.2, 5)
+logFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+logFrame.ScrollBarThickness = 6
+logFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+logFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+logFrame.Parent = mainFrame
+
+local UIListLayout = Instance.new("UIListLayout", logFrame)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 local function addLog(text)
-    logBox.Text = logBox.Text .. "\n> " .. text
-    -- スクロール
-    logBox.CanvasPosition = Vector2.new(0, logBox.TextBounds.Y - logBox.AbsoluteSize.Y)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 0, 18)
+    lbl.BackgroundTransparency = 1
+    lbl.TextColor3 = Color3.fromRGB(0, 255, 0)
+    lbl.Font = Enum.Font.Code
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Text = "> " .. text
+    lbl.Parent = logFrame
+    task.wait()
+    logFrame.CanvasPosition = Vector2.new(0, logFrame.AbsoluteCanvasSize.Y)
 end
 
 -- スタッド入力欄
@@ -138,120 +143,58 @@ currentHeight.Text = "↑: 40"
 currentHeight.Parent = mainFrame
 
 heightInput:GetPropertyChangedSignal("Text"):Connect(function()
-    local val = tonumber(heightInput.Text)
-    if val then
-        currentHeight.Text = "↑: " .. tostring(val)
-    else
-        currentHeight.Text = "↑: ?"
-    end
+    local val = tonumber(heightInput.Text)
+    if val then
+        currentHeight.Text = "↑: " .. tostring(val)
+    else
+        currentHeight.Text = "↑: ?"
+    end
 end)
 
--- ワープ関数（座標変更）
-local function safeWarp(height)
-    local char = player.Character or player.CharacterAdded:Wait()
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then
-        addLog("HumanoidRootPart not found")
-        return
-    end
+-- 常時保護（ON/OFF切り替えなし）
+local protectionEnabled = true  -- 常時保護はONに設定
 
-    local h = tonumber(height) or 40
-    local targetPos = root.Position + Vector3.new(0, h, 0)
+local function protectCharacter()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local humanoid = char:WaitForChild("Humanoid")
+    local root = char:WaitForChild("HumanoidRootPart")
 
-    root.CFrame = CFrame.new(targetPos)
-    addLog("Warped ↑ "..tostring(h).." studs")
+    humanoid.BreakJointsOnDeath = false
 
-    pcall(function()
-        root:SetNetworkOwner(player)
-    end)
+    humanoid.StateChanged:Connect(function(_, new)
+        if new == Enum.HumanoidStateType.Dead then
+            addLog("死亡検出 - 即回復処理開始")
+            humanoid.Health = humanoid.MaxHealth
+            humanoid.PlatformStand = false
+            humanoid:ChangeState(Enum.HumanoidStateType.Running)
+        end
+    end)
 
-    local startTime = tick()
-    local conn
-    conn = RunService.Heartbeat:Connect(function()
-        if tick() - startTime > 10 then
-            conn:Disconnect()
-            return
-        end
-        if root and root.Parent then
-            root.Velocity = Vector3.zero
-            root.RotVelocity = Vector3.zero
-            root.CFrame = CFrame.new(targetPos)
-            pcall(function()
-                root:SetNetworkOwner(player)
-            end)
-        else
-            conn:Disconnect()
-        end
-    end)
+    RunService.Heartbeat:Connect(function()
+        if protectionEnabled then
+            if humanoid.Health < humanoid.MaxHealth then
+                humanoid.Health = humanoid.MaxHealth
+                humanoid.PlatformStand = false
+            end
+            if root and root.Parent then
+                root.Velocity = Vector3.zero
+                root.RotVelocity = Vector3.zero
+                pcall(function()
+                    root:SetNetworkOwner(player)
+                end)
+            end
+        end
+    end)
 end
 
--- ワープボタン
-local warpButton = Instance.new("TextButton")
-warpButton.Size = UDim2.new(0.4, 0, 0.1, 0)
-warpButton.Position = UDim2.new(0.3, 0, 0.75, 0)
-warpButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-warpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-warpButton.Font = Enum.Font.Code
-warpButton.TextScaled = true
-warpButton.Text = "Warp"
-warpButton.Parent = mainFrame
+player.CharacterAdded:Connect(protectCharacter)
+protectCharacter()
 
-warpButton.MouseButton1Click:Connect(function()
-    local val = tonumber(heightInput.Text)
-    if not val then
-        addLog("Invalid height input")
-        return
-    end
-    safeWarp(val)
-end)
-
--- 透明化ボタン
-local transparencyButton = Instance.new("TextButton")
-transparencyButton.Size = UDim2.new(0.65, 0, 0.15, 0)
-transparencyButton.Position = UDim2.new(0.025, 0, 0.85, 0)
-transparencyButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-transparencyButton.TextColor3 = Color3.fromRGB(0, 255, 0)
-transparencyButton.Font = Enum.Font.Code
-transparencyButton.TextScaled = true
-transparencyButton.Text = "[ 透明化 ]"
-transparencyButton.Parent = mainFrame
-
--- ワープ時のビープ音（軽量サウンド）
-local beepSound = Instance.new("Sound")
-beepSound.SoundId = "rbxassetid://911882704" -- 短いビープ音
-beepSound.Volume = 0.6
-beepSound.Parent = mainFrame
-
-local function animateButton(btn)
-    TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
-        BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-    }):Play()
-    beepSound:Play()
-    task.wait(0.2)
-    TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
-        BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    }):Play()
+-- ログに保護状態を表示
+if protectionEnabled then
+    addLog("現在保護中")
+else
+    addLog("保護解除")
 end
 
--- 透明化機能の実装
-local function makeInvisible()
-    local char = player.Character
-    if not char then return end
-    for _, obj in ipairs(char:GetChildren()) do
-        if obj:IsA("BasePart") then
-            obj.Transparency = 1
-        elseif obj:IsA("Accessory") then
-            obj.Handle.Transparency = 1
-        end
-    end
-    addLog("透明化完了")
-end
-
-transparencyButton.MouseButton1Click:Connect(function()
-    animateButton(transparencyButton)
-    makeInvisible()
-    addLog("透明化中...")
-end)
-
--- 起動メッセージ
 addLog("起動完了: ！daxhab！ / 作成者: dax")
