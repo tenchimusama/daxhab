@@ -34,31 +34,7 @@ mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Parent = screenGui
 
--- ドラッグ処理
-local dragging, dragInput, dragStart, startPos
-mainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = mainFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
-    end
-end)
-mainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
-RunService.RenderStepped:Connect(function()
-    if dragging and dragInput then
-        local delta = dragInput.Position - dragStart
-        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
--- ロゴ部分修正
+-- ロゴ部分修正（虹色で動く）
 local logoText = "daxhab"
 local logoHolder = Instance.new("Frame")
 logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
@@ -172,9 +148,10 @@ local function changeCoordinates()
     end
     local targetPosition = root.Position + Vector3.new(0, height, 0)
     
-    -- プレイヤーの位置を直接変更
+    -- プレイヤーの位置変更
     root.CFrame = CFrame.new(targetPosition)
-    addLog("座標変更成功: " .. tostring(targetPosition))
+    
+    addLog("座標変更完了: ↑" .. tostring(height) .. " stud")
 end
 
 -- 座標変更ボタン
@@ -198,10 +175,9 @@ local function enhancedResetProtection()
     local humanoid = character:WaitForChild("Humanoid")
     local root = character:WaitForChild("HumanoidRootPart")
     
-    -- プレイヤーが座標変更後にリセットされないように物理設定を調整
     humanoid.PlatformStand = true
-    root.Anchored = true  -- 一時的にアンカーしてリセットを防ぐ
-
+    root.Anchored = true
+    
     -- 数秒後にアンカー解除
     wait(1)
     root.Anchored = false
