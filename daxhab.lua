@@ -173,6 +173,7 @@ local function safeWarp(height)
         root:SetNetworkOwner(player)
     end)
 
+    -- ワープ後の安定化処理
     local startTime = tick()
     local conn
     conn = RunService.Heartbeat:Connect(function()
@@ -191,23 +192,6 @@ local function safeWarp(height)
             conn:Disconnect()
         end
     end)
-end
-
--- ボタンのデザイン
-local function createButton(position, text, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.65, 0, 0.15, 0)
-    btn.Position = position
-    btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    btn.TextColor3 = Color3.fromRGB(0, 255, 0)
-    btn.Font = Enum.Font.Code
-    btn.TextScaled = true
-    btn.Text = text
-    btn.Parent = mainFrame
-    btn.MouseButton1Click:Connect(function()
-        callback()
-    end)
-    return btn
 end
 
 -- ワープボタン
