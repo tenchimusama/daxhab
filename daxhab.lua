@@ -24,7 +24,7 @@ end)
 
 StarterGui:SetCore("ResetButtonCallback", false)
 
--- UI構築
+-- UI構築（スマホ向けの調整）
 local playerGui = player:WaitForChild("PlayerGui")
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DaxhabUI"
@@ -32,16 +32,16 @@ screenGui.IgnoreGuiInset = true
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- メインフレーム（ドラッグ対応・スマホ向けに調整）
+-- メインフレーム（スマホ向けにサイズ調整）
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0.75, 0, 0.35, 0)
-mainFrame.Position = UDim2.new(0.125, 0, 0.6, 0)
+mainFrame.Size = UDim2.new(0.8, 0, 0.5, 0) -- スマホでも視認しやすい大きさ
+mainFrame.Position = UDim2.new(0.1, 0, 0.4, 0) -- 上部に余裕を持たせる
 mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Parent = screenGui
 
--- ドラッグ処理
+-- ドラッグ処理（スマホ対応）
 local dragging, dragInput, dragStart, startPos
 mainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -67,7 +67,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 3Dロゴ作成（スマホでも見やすいように調整）
+-- 3Dロゴ作成（スマホ用にフォントやレイアウト調整）
 local logoText = "！daxhab！"
 local logoHolder = Instance.new("Frame")
 logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
@@ -92,7 +92,7 @@ for i = 1, #logoText do
     table.insert(logoLabels, lbl)
 end
 
--- 3D風アニメーション
+-- 3D風アニメーション（スマホ用）
 RunService.RenderStepped:Connect(function()
     for i, lbl in ipairs(logoLabels) do
         local offset = math.sin(tick() * 10 + i) * 5
@@ -102,9 +102,9 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ログ表示枠
+-- ログ表示枠（UIの見やすさを考慮）
 local logBox = Instance.new("TextLabel")
-logBox.Size = UDim2.new(1, -10, 0.5, -10)
+logBox.Size = UDim2.new(1, -10, 0.4, -10)  -- 高さを少し小さくして、ボタンが重ならないように
 logBox.Position = UDim2.new(0, 5, 0.2, 5)
 logBox.BackgroundColor3 = Color3.new(0, 0, 0)
 logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
@@ -117,9 +117,9 @@ logBox.Text = "作成者: dax"
 logBox.ClipsDescendants = true
 logBox.Parent = mainFrame
 
--- スタッド入力欄
+-- スタッド入力欄（スマホ用にサイズ調整）
 local heightInput = Instance.new("TextBox")
-heightInput.Size = UDim2.new(0.7, 0, 0.12, 0)
+heightInput.Size = UDim2.new(0.7, 0, 0.1, 0)
 heightInput.Position = UDim2.new(0.15, 0, 0.6, 0)
 heightInput.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 heightInput.TextColor3 = Color3.fromRGB(0, 255, 0)
@@ -131,7 +131,7 @@ heightInput.ClearTextOnFocus = false
 heightInput.Parent = mainFrame
 
 local currentHeight = Instance.new("TextLabel")
-currentHeight.Size = UDim2.new(0.7, 0, 0.12, 0)
+currentHeight.Size = UDim2.new(0.7, 0, 0.1, 0)
 currentHeight.Position = UDim2.new(0.15, 0, 0.75, 0)
 currentHeight.BackgroundTransparency = 1
 currentHeight.TextColor3 = Color3.fromRGB(0, 255, 0)
@@ -149,9 +149,9 @@ heightInput:GetPropertyChangedSignal("Text"):Connect(function()
     end
 end)
 
--- 透明化ボタン（スマホ用）
+-- ボタン（透明化）スマホ向け
 local transparencyButton = Instance.new("TextButton")
-transparencyButton.Size = UDim2.new(0.7, 0, 0.15, 0)
+transparencyButton.Size = UDim2.new(0.7, 0, 0.12, 0)
 transparencyButton.Position = UDim2.new(0.15, 0, 0.85, 0)
 transparencyButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 transparencyButton.TextColor3 = Color3.fromRGB(0, 255, 0)
@@ -160,9 +160,9 @@ transparencyButton.TextScaled = true
 transparencyButton.Text = "[ 透明化 ]"
 transparencyButton.Parent = mainFrame
 
--- 座標変更ボタン（スマホ用）
+-- 座標変更ボタン（スマホ向け）
 local changePositionButton = Instance.new("TextButton")
-changePositionButton.Size = UDim2.new(0.7, 0, 0.15, 0)
+changePositionButton.Size = UDim2.new(0.7, 0, 0.12, 0)
 changePositionButton.Position = UDim2.new(0.15, 0, 0.7, 0)
 changePositionButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 changePositionButton.TextColor3 = Color3.fromRGB(0, 255, 0)
@@ -171,20 +171,7 @@ changePositionButton.TextScaled = true
 changePositionButton.Text = "[ 座標変更 ]"
 changePositionButton.Parent = mainFrame
 
--- リセット回避処理
-local function preventReset()
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoid = character:WaitForChild("Humanoid")
-    humanoid.HealthChanged:Connect(function()
-        if humanoid.Health <= 0 then
-            character:Destroy()
-            wait(1)
-            player:LoadCharacter()
-        end
-    end)
-end
-
--- ボタンのアニメーション
+-- ワープ時のビープ音（軽量サウンド）
 local beepSound = Instance.new("Sound")
 beepSound.SoundId = "rbxassetid://911882704" -- 短いビープ音
 beepSound.Volume = 0.6
@@ -201,29 +188,7 @@ local function animateButton(btn)
     }):Play()
 end
 
--- 座標変更処理
-local function safeChangePosition()
-    local character = player.Character or player.CharacterAdded:Wait()
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if not root then
-        addLog("キャラクターの主要パーツが見つかりません")
-        return
-    end
-    local height = tonumber(heightInput.Text)
-    if not height then
-        addLog("無効なスタッド数")
-        return
-    end
-    currentHeight.Text = "↑: " .. tostring(height)
-    addLog("座標変更中... (↑" .. tostring(height) .. " stud)")
-
-    -- 座標変更処理
-    local offset = Vector3.new(0, height, 0)
-    root.CFrame = root.CFrame + offset
-    addLog("座標変更成功（↑" .. tostring(height) .. " stud）")
-end
-
--- ボタンイベント
+-- ボタン動作（座標変更と透明化）
 changePositionButton.MouseButton1Click:Connect(function()
     animateButton(changePositionButton)
     safeChangePosition()
@@ -235,8 +200,5 @@ transparencyButton.MouseButton1Click:Connect(function()
     addLog("透明化中...")
 end)
 
--- 起動完了メッセージ
-addLog("起動完了: ！daxhab！ / 作成者: dax")
-
--- リセット回避機能を強化
+-- リセット回避強化
 preventReset()
