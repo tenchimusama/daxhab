@@ -1,8 +1,9 @@
 --!strict
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
+local StarterGui = game:GetService("StarterGui")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 
@@ -15,7 +16,7 @@ player.Idled:Connect(function()
 end)
 StarterGui:SetCore("ResetButtonCallback", false)
 
--- UI構築
+-- ===== UI構築(元のまま) =====
 local playerGui = player:WaitForChild("PlayerGui")
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DaxhabUI"
@@ -31,7 +32,6 @@ mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Parent = screenGui
 
--- ドラッグ機能
 local dragging, dragInput, dragStart, startPos
 mainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -55,7 +55,39 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ログ表示
+-- 3Dロゴ
+local logoText = "！daxhab！"
+local logoHolder = Instance.new("Frame")
+logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
+logoHolder.Position = UDim2.new(0, 0, 0, 0)
+logoHolder.BackgroundTransparency = 1
+logoHolder.Parent = mainFrame
+
+local logoLabels = {}
+for i = 1, #logoText do
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0, 15, 1, 0)
+    lbl.Position = UDim2.new(0, 15 * (i - 1), 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Font = Enum.Font.Code
+    lbl.TextScaled = true
+    lbl.Text = logoText:sub(i, i)
+    lbl.TextStrokeTransparency = 0
+    lbl.TextStrokeColor3 = Color3.new(0, 1, 0)
+    lbl.TextColor3 = Color3.fromHSV((tick() * 0.15 + i * 0.05) % 1, 1, 1)
+    lbl.Parent = logoHolder
+    table.insert(logoLabels, lbl)
+end
+RunService.RenderStepped:Connect(function()
+    for i, lbl in ipairs(logoLabels) do
+        local offset = math.sin(tick() * 8 + i) * 5
+        lbl.Position = UDim2.new(0, 15 * (i - 1), 0, offset)
+        lbl.TextColor3 = Color3.fromHSV((tick() * 0.25 + i * 0.07) % 1, 1, 1)
+        lbl.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
+    end
+end)
+
+-- ログスクロールフレーム
 local logFrame = Instance.new("ScrollingFrame")
 logFrame.Size = UDim2.new(1, -10, 0.5, -10)
 logFrame.Position = UDim2.new(0, 5, 0.2, 5)
@@ -113,7 +145,113 @@ heightInput:GetPropertyChangedSignal("Text"):Connect(function()
     end
 end)
 
--- ワープ機能（強力な巻き戻し保護付き）
+-- 保護トグル状態（前は透明化だった箇所）
+local isProtected = false
+
+local function protectCharacter()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local humanoid = char:WaitForChild("Humanoid")
+    local root = char:WaitForChild("HumanoidRootPart")
+
+    humanoid.BreakJointsOnDeath = false
+
+    humanoid.StateChanged:Connect(function(_, new)
+        if new == Enum.HumanoidStateType.Dead then
+            addLog("死亡検出 - 即回復処理開始")
+            humanoid.Health = humanoid.MaxHealth
+            humanoid.PlatformStand = false
+            humanoid:ChangeState(Enum.HumanoidStateType.Running)
+        end
+    end)
+
+    RunService.Heartbeat:Connect(function()
+        if humanoid.Health < humanoid.MaxHealth then
+            humanoid.Health = humanoid.MaxHealth
+            humanoid.PlatformStand = false
+        end
+        if root and root.Parent then
+            root.Velocity = Vector3.zero
+            root.RotVelocity = Vector3.zero
+            pcall(function()
+                root:SetNetworkOwner(player)
+            end)
+        end
+    end)
+end
+
+local protectionConn -- 保護監視コネクション用
+
+local function toggleProtection(state)
+    if state then
+        if not protectionConn then
+            protectCharacter()
+            addLog("保護モード: ON")
+            protectionConn = true -- シンプルに接続済みを示すだけ
+        end
+    else
+        -- 実質解除は難しいがここでログだけ切替え
+        addLog("保護モード: OFF（リロードで解除）")
+    end
+end
+
+-- 透明化ボタンを保護ボタンに差し替え
+local protectionButton = Instance.new("TextButton")
+protectionButton.Size = UDim2.new(0.65, 0, 0.15, 0)
+protectionButton.Position = UDim2.new(0.025, 0, 0.85, 0)
+protectionButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+protectionButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+protectionButton.Font = Enum.Font.Code
+protectionButton.TextScaled = true
+protectionButton.Text = "[ 保護: OFF ]"
+protectionButton.Parent = mainFrame
+
+protectionButton.MouseButton1Click:Connect(function()
+    isProtected = not isProtected
+    TweenService:Create(protectionButton, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
+        BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+    }):Play()
+    task.wait(0.15)
+    TweenService:Create(protectionButton, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
+        BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    }):Play()
+
+    protectionButton.Text = "[ 保護: " .. (isProtected and "ON" or "OFF") .. " ]"
+    if isProtected then
+        toggleProtection(true)
+    else
+        toggleProtection(false)
+    end
+end)
+
+-- 縮小/拡大ボタン（元のまま）
+local shrinkButton = Instance.new("TextButton")
+shrinkButton.Size = UDim2.new(0.15, 0, 0.07, 0)
+shrinkButton.Position = UDim2.new(0.85, 0, 0, 0)
+shrinkButton.BackgroundColor3 = Color3.fromRGB(40,40,40)
+shrinkButton.TextColor3 = Color3.fromRGB(0,255,0)
+shrinkButton.Font = Enum.Font.Code
+shrinkButton.TextScaled = true
+shrinkButton.Text = "[ - ]"
+shrinkButton.Parent = mainFrame
+
+local normalSize = mainFrame.Size
+local normalPos = mainFrame.Position
+local isShrunk = false
+
+shrinkButton.MouseButton1Click:Connect(function()
+    if isShrunk then
+        mainFrame.Size = normalSize
+        mainFrame.Position = normalPos
+        shrinkButton.Text = "[ - ]"
+    else
+        mainFrame.Size = UDim2.new(0.15,0,0.2,0)
+        mainFrame.Position = UDim2.new(0.8,0,0.8,0)
+        shrinkButton.Text = "[ + ]"
+    end
+    isShrunk = not isShrunk
+end)
+
+-- ワープ機能（元のまま）
 local function safeWarp(height)
     local char = player.Character or player.CharacterAdded:Wait()
     local root = char:FindFirstChild("HumanoidRootPart")
@@ -132,7 +270,7 @@ local function safeWarp(height)
         humanoid.Health = humanoid.MaxHealth
     end
 
-    addLog("Warped ↑ " .. tostring(h) .. " studs")
+    addLog("Warped ↑ "..tostring(h).." studs")
 
     root.CFrame = CFrame.new(targetPos)
     root.Velocity = Vector3.zero
@@ -142,7 +280,6 @@ local function safeWarp(height)
         root:SetNetworkOwner(player)
     end)
 
-    -- 10秒間の巻き戻し＆位置監視保護
     local startTime = tick()
     local conn
     conn = RunService.Heartbeat:Connect(function()
@@ -175,7 +312,6 @@ local function safeWarp(height)
     end)
 end
 
--- ワープボタン
 local warpButton = Instance.new("TextButton")
 warpButton.Size = UDim2.new(0.4, 0, 0.1, 0)
 warpButton.Position = UDim2.new(0.3, 0, 0.75, 0)
@@ -195,39 +331,11 @@ warpButton.MouseButton1Click:Connect(function()
     safeWarp(val)
 end)
 
--- リセット＆死亡回避保護
-local function protectCharacter()
-    local char = player.Character or player.CharacterAdded:Wait()
-    local humanoid = char:WaitForChild("Humanoid")
-    local root = char:WaitForChild("HumanoidRootPart")
-
-    humanoid.BreakJointsOnDeath = false
-
-    humanoid.StateChanged:Connect(function(_, new)
-        if new == Enum.HumanoidStateType.Dead then
-            addLog("死亡検出 - 即回復処理開始")
-            humanoid.Health = humanoid.MaxHealth
-            humanoid.PlatformStand = false
-            humanoid:ChangeState(Enum.HumanoidStateType.Running)
-        end
-    end)
-
-    RunService.Heartbeat:Connect(function()
-        if humanoid.Health < humanoid.MaxHealth then
-            humanoid.Health = humanoid.MaxHealth
-            humanoid.PlatformStand = false
-        end
-        if root and root.Parent then
-            root.Velocity = Vector3.zero
-            root.RotVelocity = Vector3.zero
-            pcall(function()
-                root:SetNetworkOwner(player)
-            end)
-        end
-    end)
-end
-
-player.CharacterAdded:Connect(protectCharacter)
-protectCharacter()
+-- 保護はキャラ追加時に常に監視する
+player.CharacterAdded:Connect(function()
+    if isProtected then
+        protectCharacter()
+    end
+end)
 
 addLog("起動完了: ！daxhab！ / 作成者: dax")
