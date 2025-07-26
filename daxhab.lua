@@ -1,9 +1,8 @@
 --!strict
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local StarterGui = game:GetService("StarterGui")
-local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 
@@ -16,7 +15,7 @@ player.Idled:Connect(function()
 end)
 StarterGui:SetCore("ResetButtonCallback", false)
 
--- ===== UI構築 =====
+-- UI構築
 local playerGui = player:WaitForChild("PlayerGui")
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DaxhabUI"
@@ -114,44 +113,7 @@ heightInput:GetPropertyChangedSignal("Text"):Connect(function()
     end
 end)
 
--- ボタンアニメーション関数
-local function animateButton(btn)
-    TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
-        BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-    }):Play()
-    task.wait(0.15)
-    TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
-        BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    }):Play()
-end
-
--- ワープ時の紫発光エフェクト
-local function emitPurpleGlow(char, duration)
-    if not char then return end
-    local glowParts = {}
-
-    for _, part in ipairs(char:GetChildren()) do
-        if part:IsA("BasePart") then
-            local glow = Instance.new("PointLight")
-            glow.Color = Color3.fromRGB(170, 0, 255)
-            glow.Range = 10
-            glow.Brightness = 3
-            glow.Shadows = true
-            glow.Parent = part
-            table.insert(glowParts, glow)
-        end
-    end
-
-    delay(duration, function()
-        for _, glow in ipairs(glowParts) do
-            if glow and glow.Parent then
-                glow:Destroy()
-            end
-        end
-    end)
-end
-
--- ワープ関数（完全保護付き）
+-- ワープ機能（強力な巻き戻し保護付き）
 local function safeWarp(height)
     local char = player.Character or player.CharacterAdded:Wait()
     local root = char:FindFirstChild("HumanoidRootPart")
@@ -170,7 +132,6 @@ local function safeWarp(height)
         humanoid.Health = humanoid.MaxHealth
     end
 
-    emitPurpleGlow(char, 3)
     addLog("Warped ↑ " .. tostring(h) .. " studs")
 
     root.CFrame = CFrame.new(targetPos)
@@ -181,7 +142,7 @@ local function safeWarp(height)
         root:SetNetworkOwner(player)
     end)
 
-    -- 10秒間巻き戻し防止＆復活監視
+    -- 10秒間の巻き戻し＆位置監視保護
     local startTime = tick()
     local conn
     conn = RunService.Heartbeat:Connect(function()
@@ -234,34 +195,7 @@ warpButton.MouseButton1Click:Connect(function()
     safeWarp(val)
 end)
 
--- 保護機能トグル
-local protectionEnabled = true
-
-local protectionButton = Instance.new("TextButton")
-protectionButton.Size = UDim2.new(0.25, 0, 0.1, 0)
-protectionButton.Position = UDim2.new(0.1, 0, 0.85, 0)
-protectionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-protectionButton.TextColor3 = Color3.fromRGB(0, 255, 0)
-protectionButton.Font = Enum.Font.Code
-protectionButton.TextScaled = true
-protectionButton.Text = "[ 保護: ON ]"
-protectionButton.Parent = mainFrame
-
-local function animateProtectionBtn()
-    TweenService:Create(protectionButton, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(0, 100, 0)}):Play()
-    task.wait(0.2)
-    TweenService:Create(protectionButton, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(30, 30, 30)}):Play()
-end
-
-protectionButton.MouseButton1Click:Connect(function()
-    protectionEnabled = not protectionEnabled
-    protectionButton.Text = protectionEnabled and "[ 保護: ON ]" or "[ 保護: OFF ]"
-    protectionButton.TextColor3 = protectionEnabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-    animateProtectionBtn()
-    addLog("Protection toggled: " .. (protectionEnabled and "ON" or "OFF"))
-end)
-
--- リセット完全防御モジュール
+-- リセット＆死亡回避保護
 local function protectCharacter()
     local char = player.Character or player.CharacterAdded:Wait()
     local humanoid = char:WaitForChild("Humanoid")
@@ -270,7 +204,7 @@ local function protectCharacter()
     humanoid.BreakJointsOnDeath = false
 
     humanoid.StateChanged:Connect(function(_, new)
-        if new == Enum.HumanoidStateType.Dead and protectionEnabled then
+        if new == Enum.HumanoidStateType.Dead then
             addLog("死亡検出 - 即回復処理開始")
             humanoid.Health = humanoid.MaxHealth
             humanoid.PlatformStand = false
@@ -279,18 +213,16 @@ local function protectCharacter()
     end)
 
     RunService.Heartbeat:Connect(function()
-        if protectionEnabled then
-            if humanoid.Health < humanoid.MaxHealth then
-                humanoid.Health = humanoid.MaxHealth
-                humanoid.PlatformStand = false
-            end
-            if root and root.Parent then
-                root.Velocity = Vector3.zero
-                root.RotVelocity = Vector3.zero
-                pcall(function()
-                    root:SetNetworkOwner(player)
-                end)
-            end
+        if humanoid.Health < humanoid.MaxHealth then
+            humanoid.Health = humanoid.MaxHealth
+            humanoid.PlatformStand = false
+        end
+        if root and root.Parent then
+            root.Velocity = Vector3.zero
+            root.RotVelocity = Vector3.zero
+            pcall(function()
+                root:SetNetworkOwner(player)
+            end)
         end
     end)
 end
