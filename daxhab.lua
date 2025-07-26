@@ -58,7 +58,42 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ログ表示枠（スクロール対応）
+-- 3Dロゴ作成
+local logoText = "！daxhab！"
+local logoHolder = Instance.new("Frame")
+logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
+logoHolder.Position = UDim2.new(0, 0, 0, 0)
+logoHolder.BackgroundTransparency = 1
+logoHolder.Parent = mainFrame
+
+local logoLabels = {}
+
+for i = 1, #logoText do
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0, 15, 1, 0)
+    lbl.Position = UDim2.new(0, 15 * (i - 1), 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Font = Enum.Font.Code
+    lbl.TextScaled = true
+    lbl.Text = logoText:sub(i, i)
+    lbl.TextStrokeTransparency = 0
+    lbl.TextStrokeColor3 = Color3.new(0, 1, 0)
+    lbl.TextColor3 = Color3.fromHSV((tick() * 0.2 + i * 0.05) % 1, 1, 1)
+    lbl.Parent = logoHolder
+    table.insert(logoLabels, lbl)
+end
+
+-- 3D風アニメーション
+RunService.RenderStepped:Connect(function()
+    for i, lbl in ipairs(logoLabels) do
+        local offset = math.sin(tick() * 10 + i) * 5
+        lbl.Position = UDim2.new(0, 15 * (i - 1), 0, offset)
+        lbl.TextColor3 = Color3.fromHSV((tick() * 0.3 + i * 0.07) % 1, 1, 1)
+        lbl.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
+    end
+end)
+
+-- ログ表示枠
 local logBox = Instance.new("TextLabel")
 logBox.Size = UDim2.new(1, -10, 0.5, -10)
 logBox.Position = UDim2.new(0, 5, 0.2, 5)
@@ -73,32 +108,41 @@ logBox.Text = "作成者: dax"
 logBox.ClipsDescendants = true
 logBox.Parent = mainFrame
 
--- スクロール機能を持つログボックスに修正
-logBox.TextTransparency = 1
-local scroller = Instance.new("ScrollingFrame")
-scroller.Size = UDim2.new(1, -10, 0.5, -10)
-scroller.Position = UDim2.new(0, 5, 0.2, 5)
-scroller.CanvasSize = UDim2.new(0, 0, 0, 0)
-scroller.BackgroundTransparency = 1
-scroller.ScrollBarThickness = 5
-scroller.Parent = mainFrame
-
--- ログボックスにスクロールを追加
-local logText = Instance.new("TextLabel")
-logText.Size = UDim2.new(1, 0, 0, 100)
-logText.Position = UDim2.new(0, 0, 0, 0)
-logText.BackgroundTransparency = 1
-logText.Font = Enum.Font.Code
-logText.TextColor3 = Color3.fromRGB(0, 255, 0)
-logText.TextScaled = true
-logText.TextWrapped = true
-logText.Text = "作成者: dax"
-logText.Parent = scroller
-
 local function addLog(text)
-    logText.Text = logText.Text .. "\n> " .. text
-    scroller.CanvasSize = UDim2.new(0, 0, 0, logText.TextBounds.Y + 10)
+    logBox.Text = logBox.Text .. "\n> " .. text
 end
+
+-- スタッド入力欄
+local heightInput = Instance.new("TextBox")
+heightInput.Size = UDim2.new(0.3, 0, 0.12, 0)
+heightInput.Position = UDim2.new(0.68, 0, 0.63, 0)
+heightInput.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+heightInput.TextColor3 = Color3.fromRGB(0, 255, 0)
+heightInput.PlaceholderText = "↑スタッド"
+heightInput.Text = "40"
+heightInput.TextScaled = true
+heightInput.Font = Enum.Font.Code
+heightInput.ClearTextOnFocus = false
+heightInput.Parent = mainFrame
+
+local currentHeight = Instance.new("TextLabel")
+currentHeight.Size = UDim2.new(0.3, 0, 0.12, 0)
+currentHeight.Position = UDim2.new(0.68, 0, 0.77, 0)
+currentHeight.BackgroundTransparency = 1
+currentHeight.TextColor3 = Color3.fromRGB(0, 255, 0)
+currentHeight.Font = Enum.Font.Code
+currentHeight.TextScaled = true
+currentHeight.Text = "↑: 40"
+currentHeight.Parent = mainFrame
+
+heightInput:GetPropertyChangedSignal("Text"):Connect(function()
+    local val = tonumber(heightInput.Text)
+    if val then
+        currentHeight.Text = "↑: " .. tostring(val)
+    else
+        currentHeight.Text = "↑: ?"
+    end
+end)
 
 -- ワープ関数（座標変更）
 local function safeWarp(height)
@@ -112,11 +156,9 @@ local function safeWarp(height)
     local h = tonumber(height) or 40
     local targetPos = root.Position + Vector3.new(0, h, 0)
 
-    -- ワープを2回行い、強制的にリセットされないようにする
     root.CFrame = CFrame.new(targetPos)
     addLog("Warped ↑ "..tostring(h).." studs")
 
-    -- ネットワークオーナーを設定
     pcall(function()
         root:SetNetworkOwner(player)
     end)
@@ -129,7 +171,6 @@ local function safeWarp(height)
             return
         end
         if root and root.Parent then
-            -- 速度や回転をリセット
             root.Velocity = Vector3.zero
             root.RotVelocity = Vector3.zero
             root.CFrame = CFrame.new(targetPos)
@@ -198,3 +239,5 @@ end)
 
 -- 起動メッセージ
 addLog("起動完了: ！daxhab！ / 作成者: dax")
+
+
