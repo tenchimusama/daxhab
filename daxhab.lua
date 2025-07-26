@@ -54,7 +54,7 @@ logoLabel.TextStrokeColor3 = Color3.new(0, 1, 0)
 logoLabel.TextColor3 = Color3.fromHSV(tick() * 0.2, 1, 1)
 logoLabel.Parent = logoHolder
 
--- 作成者メッセージ
+-- 作成者メッセージ（ログ）
 local creatorMessage = Instance.new("TextLabel")
 creatorMessage.Size = UDim2.new(1, -10, 0.1, 0)
 creatorMessage.Position = UDim2.new(0, 5, 0.9, 5)
@@ -167,27 +167,6 @@ changeCoordButton.Parent = mainFrame
 
 changeCoordButton.MouseButton1Click:Connect(function()
     changeCoordinates()
-end)
-
--- リセット回避強化
-local function enhancedResetProtection()
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoid = character:WaitForChild("Humanoid")
-    local root = character:WaitForChild("HumanoidRootPart")
-    
-    humanoid.PlatformStand = true
-    root.Anchored = true
-    
-    -- 数秒後にアンカー解除
-    wait(1)
-    root.Anchored = false
-    humanoid.PlatformStand = false
-end
-
--- リセット回避強化を座標変更後に実行
-changeCoordButton.MouseButton1Click:Connect(function()
-    changeCoordinates()
-    enhancedResetProtection()
 end)
 
 -- ログ表示
