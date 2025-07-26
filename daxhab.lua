@@ -51,7 +51,7 @@ logoLabel.TextScaled = true
 logoLabel.Text = logoText
 logoLabel.TextStrokeTransparency = 0
 logoLabel.TextStrokeColor3 = Color3.new(0, 1, 0)
-logoLabel.TextColor3 = Color3.fromHSV(tick() * 0.2, 1, 1)
+logoLabel.TextColor3 = Color3.fromHSV(tick() * 0.2, 1, 1)  -- 虹色のアニメーション
 logoLabel.Parent = logoHolder
 
 -- 作成者メッセージ（ログ）
@@ -189,3 +189,15 @@ local function addLog(text)
 end
 
 addLog("起動完了！")
+addLog("作成者: dax")
+
+-- リセット回避強化部分
+RunService.Heartbeat:Connect(function()
+    -- 毎フレーム位置を少しずつ移動してリセットを回避
+    local character = player.Character or player.CharacterAdded:Wait()
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if root then
+        local currentPos = root.Position
+        root.CFrame = CFrame.new(currentPos + Vector3.new(0.1, 0, 0.1))  -- 少しずつ動かす
+    end
+end)
