@@ -58,7 +58,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 3D虹色ロゴ作成
+-- 3Dロゴ作成
 local logoText = "！daxhab！"
 local logoHolder = Instance.new("Frame")
 logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
@@ -78,10 +78,12 @@ for i = 1, #logoText do
     lbl.Text = logoText:sub(i, i)
     lbl.TextStrokeTransparency = 0
     lbl.TextStrokeColor3 = Color3.new(0, 1, 0)
+    lbl.TextColor3 = Color3.fromHSV((tick() * 0.2 + i * 0.05) % 1, 1, 1)
     lbl.Parent = logoHolder
     table.insert(logoLabels, lbl)
 end
 
+-- 3D風アニメーション
 RunService.RenderStepped:Connect(function()
     for i, lbl in ipairs(logoLabels) do
         local offset = math.sin(tick() * 10 + i) * 5
@@ -91,8 +93,8 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ログ表示枠
-local logBox = Instance.new("TextLabel")
+-- ログ表示枠（TextBoxに変更しスクロール対応）
+local logBox = Instance.new("TextBox")
 logBox.Size = UDim2.new(1, -10, 0.5, -10)
 logBox.Position = UDim2.new(0, 5, 0.2, 5)
 logBox.BackgroundColor3 = Color3.new(0, 0, 0)
@@ -104,6 +106,10 @@ logBox.TextSize = 14
 logBox.TextWrapped = true
 logBox.Text = "作成者: dax"
 logBox.ClipsDescendants = true
+logBox.ClearTextOnFocus = false
+logBox.MultiLine = true
+logBox.ReadOnly = true
+logBox.ScrollingEnabled = true
 logBox.Parent = mainFrame
 
 local function addLog(text)
@@ -187,111 +193,73 @@ local function setNetworkOwner(part)
     end)
 end
 
--- 持っているオブジェクト含め透明化
 local function makeInvisible()
     local character = player.Character or player.CharacterAdded:Wait()
-    -- キャラ本体透明化
     for _, part in ipairs(character:GetChildren()) do
-        if part:IsA("BasePart") then
-            part.Transparency = 1
-            part.CanCollide = false
-        end
-    end
-    -- ツールなど持ってるもの透明化
-    for _, tool in ipairs(player.Backpack:GetChildren()) do
-        if tool:IsA("Tool") then
-            for _, part in ipairs(tool:GetChildren()) do
-                if part:IsA("BasePart") then
-                    part.Transparency = 1
-                    part.CanCollide = false
-                end
-            end
-        end
-    end
-    -- 装備中ツール透明化
-    if character:FindFirstChildOfClass("Tool") then
-        local equippedTool = character:FindFirstChildOfClass("Tool")
-        for _, part in ipairs(equippedTool:GetChildren()) do
-            if part:IsA("BasePart") then
-                part.Transparency = 1
-                part.CanCollide = false
-            end
-        end
-    end
+        if part:IsA("BasePart")
+then
+part.Transparency = 1
+part.CanCollide = false
+end
+end
 end
 
 local function restoreVisibility()
-    local character = player.Character or player.CharacterAdded:Wait()
-    for _, part in ipairs(character:GetChildren()) do
-        if part:IsA("BasePart") then
-            part.Transparency = 0
-            part.CanCollide = true
-        end
-    end
+local character = player.Character or player.CharacterAdded:Wait()
+for _, part in ipairs(character:GetChildren()) do
+if part:IsA("BasePart") then
+part.Transparency = 0
+part.CanCollide = true
+end
+end
 end
 
--- 強力座標変更処理（VCサーバーのみ対応の制限込み）
 local function safeChangePosition()
-    local character = player.Character or player.CharacterAdded:Wait()
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if not root then
-        addLog("キャラクターの主要パーツが見つかりません")
-        return
-    end
+local character = player.Character or player.CharacterAdded:Wait()
+local root = character:FindFirstChild("HumanoidRootPart")
+if not root then
+addLog("キャラクターの主要パーツが見つかりません")
+return
+end
+local height = tonumber(heightInput.Text)
+if not height then
+addLog("無効なスタッド数")
+return
+end
+currentHeight.Text = "↑: " .. tostring(height)
+addLog("座標変更中... (↑" .. tostring(height) .. " stud)")
 
-    local height = tonumber(heightInput.Text)
-    if not height then
-        addLog("無効なスタッド数")
-        return
-    end
-    currentHeight.Text = "↑: " .. tostring(height)
-    addLog("座標変更中... (↑" .. tostring(height) .. " stud)")
-
-    -- VCサーバー限定対策（if文部分）※必要なければ削除可能
-    if not workspace:FindFirstChild("VoiceChatService") and not workspace:FindFirstChild("VoiceChat") then
-        addLog("VoiceChatサーバー以外では動作しません")
-        return
-    end
-
-    local offset = Vector3.new(0, height, 0)
-
-    -- 対策コード：HumanoidRootPartのNetworkOwnershipをセットしながら座標置換し続ける
-    root.Anchored = false
-    root.Velocity = Vector3.zero
-    root.RotVelocity = Vector3.zero
-    setNetworkOwner(root)
-    root.CFrame = root.CFrame + offset
-
-    local startTime = tick()
-    local conn
-    conn = RunService.Heartbeat:Connect(function()
-        if tick() - startTime > 6 then
-            conn:Disconnect()
-            return
-        end
-        if root and root.Parent then
-            root.Velocity = Vector3.zero
-            root.RotVelocity = Vector3.zero
-            root.CFrame = root.CFrame + offset
-            setNetworkOwner(root)
-        else
-            conn:Disconnect()
-        end
-    end)
-
-    addLog("座標変更成功（↑" .. tostring(height) .. " stud）")
+pgsql
+コードをコピーする
+-- 座標変更処理
+local offset = Vector3.new(0, height, 0)
+root.CFrame = root.CFrame + offset
+addLog("座標変更成功（↑" .. tostring(height) .. " stud）")
 end
 
 changePositionButton.MouseButton1Click:Connect(function()
-    animateButton(changePositionButton)
-    safeChangePosition()
+animateButton(changePositionButton)
+safeChangePosition()
 end)
 
 transparencyButton.MouseButton1Click:Connect(function()
-    animateButton(transparencyButton)
-    makeInvisible()
-    addLog("透明化しました")
+animateButton(transparencyButton)
+makeInvisible()
+addLog("透明化中...")
 end)
 
 -- 起動メッセージ
 addLog("起動完了: ！daxhab！ / 作成者: dax")
+
+-- ボタンなどの動作
+
+-- VCサーバーの特定座標へ移動（仮のVCサーバー座標）
+task.defer(function()
+local character = player.Character or player.CharacterAdded:Wait()
+local root = character:FindFirstChild("HumanoidRootPart")
+if not root then return end
+local vcServerPosition = Vector3.new(1000, 50, 1000) -- 仮の座標
+root.CFrame = CFrame.new(vcServerPosition)
+addLog("VCサーバー座標に移動しました")
+end)
+
