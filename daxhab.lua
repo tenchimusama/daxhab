@@ -58,7 +58,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ロゴ作成
+-- 3Dロゴ作成
 local logoText = "！daxhab！"
 local logoHolder = Instance.new("Frame")
 logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
@@ -199,9 +199,9 @@ local function safeWarp(height)
     end)
 end
 
--- ワープボタン（大きさ統一）
+-- ワープボタン
 local warpButton = Instance.new("TextButton")
-warpButton.Size = UDim2.new(0.65, 0, 0.12, 0)
+warpButton.Size = UDim2.new(0.65, 0, 0.12, 0)  -- サイズ統一
 warpButton.Position = UDim2.new(0.025, 0, 0.75, 0)
 warpButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 warpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -219,9 +219,9 @@ warpButton.MouseButton1Click:Connect(function()
     safeWarp(val)
 end)
 
--- 透明化ボタン（大きさ統一）
+-- 透明化ボタン（サイズ統一）
 local transparencyButton = Instance.new("TextButton")
-transparencyButton.Size = UDim2.new(0.65, 0, 0.12, 0)
+transparencyButton.Size = UDim2.new(0.65, 0, 0.12, 0)  -- サイズ統一
 transparencyButton.Position = UDim2.new(0.025, 0, 0.85, 0)
 transparencyButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 transparencyButton.TextColor3 = Color3.fromRGB(0, 255, 0)
