@@ -93,32 +93,23 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ログ表示枠 (スクロール対応)
-local logBox = Instance.new("ScrollingFrame")
+-- ログ表示枠
+local logBox = Instance.new("TextLabel")
 logBox.Size = UDim2.new(1, -10, 0.5, -10)
 logBox.Position = UDim2.new(0, 5, 0.2, 5)
 logBox.BackgroundColor3 = Color3.new(0, 0, 0)
-logBox.ScrollBarThickness = 12
 logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
 logBox.Font = Enum.Font.Code
 logBox.TextXAlignment = Enum.TextXAlignment.Left
 logBox.TextYAlignment = Enum.TextYAlignment.Top
 logBox.TextSize = 14
 logBox.TextWrapped = true
+logBox.Text = "作成者: dax"
+logBox.ClipsDescendants = true
 logBox.Parent = mainFrame
 
 local function addLog(text)
-    local newLabel = Instance.new("TextLabel")
-    newLabel.Size = UDim2.new(1, 0, 0, 20)
-    newLabel.BackgroundTransparency = 1
-    newLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-    newLabel.Font = Enum.Font.Code
-    newLabel.Text = "> " .. text
-    newLabel.TextSize = 14
-    newLabel.TextXAlignment = Enum.TextXAlignment.Left
-    newLabel.TextYAlignment = Enum.TextYAlignment.Top
-    newLabel.Parent = logBox
-    logBox.CanvasPosition = Vector2.new(0, logBox.CanvasSize.Y.Offset)
+    logBox.Text = logBox.Text .. "\n> " .. text
 end
 
 -- スタッド入力欄
@@ -165,7 +156,6 @@ local function safeWarp(height)
     local h = tonumber(height) or 40
     local targetPos = root.Position + Vector3.new(0, h, 0)
 
-    -- ワープ処理（安定化処理を追加）
     root.CFrame = CFrame.new(targetPos)
     addLog("Warped ↑ "..tostring(h).." studs")
 
@@ -193,25 +183,18 @@ local function safeWarp(height)
     end)
 end
 
--- ボタンのデザイン
-local function createButton(position, text, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.65, 0, 0.15, 0)
-    btn.Position = position
-    btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    btn.TextColor3 = Color3.fromRGB(0, 255, 0)
-    btn.Font = Enum.Font.Code
-    btn.TextScaled = true
-    btn.Text = text
-    btn.Parent = mainFrame
-    btn.MouseButton1Click:Connect(function()
-        callback()
-    end)
-    return btn
-end
-
 -- ワープボタン
-createButton(UDim2.new(0.025, 0, 0.7, 0), "[ 座標変更 ]", function()
+local warpButton = Instance.new("TextButton")
+warpButton.Size = UDim2.new(0.4, 0, 0.1, 0)
+warpButton.Position = UDim2.new(0.3, 0, 0.75, 0)
+warpButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+warpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+warpButton.Font = Enum.Font.Code
+warpButton.TextScaled = true
+warpButton.Text = "Warp"
+warpButton.Parent = mainFrame
+
+warpButton.MouseButton1Click:Connect(function()
     local val = tonumber(heightInput.Text)
     if not val then
         addLog("Invalid height input")
@@ -221,7 +204,34 @@ createButton(UDim2.new(0.025, 0, 0.7, 0), "[ 座標変更 ]", function()
 end)
 
 -- 透明化ボタン
-createButton(UDim2.new(0.025, 0, 0.85, 0), "[ 透明化 ]", function()
+local transparencyButton = Instance.new("TextButton")
+transparencyButton.Size = UDim2.new(0.65, 0, 0.15, 0)
+transparencyButton.Position = UDim2.new(0.025, 0, 0.85, 0)
+transparencyButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+transparencyButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+transparencyButton.Font = Enum.Font.Code
+transparencyButton.TextScaled = true
+transparencyButton.Text = "[ 透明化 ]"
+transparencyButton.Parent = mainFrame
+
+-- ワープ時のビープ音（軽量サウンド）
+local beepSound = Instance.new("Sound")
+beepSound.SoundId = "rbxassetid://911882704" -- 短いビープ音
+beepSound.Volume = 0.6
+beepSound.Parent = mainFrame
+
+local function animateButton(btn)
+    TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
+        BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+    }):Play()
+    beepSound:Play()
+    task.wait(0.2)
+    TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
+        BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    }):Play()
+end
+
+transparencyButton.MouseButton1Click:Connect(function()
     animateButton(transparencyButton)
     makeInvisible()
     addLog("透明化中...")
@@ -229,3 +239,4 @@ end)
 
 -- 起動メッセージ
 addLog("起動完了: ！daxhab！ / 作成者: dax")
+
