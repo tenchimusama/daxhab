@@ -3,31 +3,20 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local StarterGui = game:GetService("StarterGui")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 
---===== RemoteEvent for global messages =====
-local remoteName = "DaxGlobalMessage"
-local remoteEvent = ReplicatedStorage:FindFirstChild(remoteName)
-if not remoteEvent then
-    remoteEvent = Instance.new("RemoteEvent")
-    remoteEvent.Name = remoteName
-    remoteEvent.Parent = ReplicatedStorage
-end
-
--- Anti-Idle (Move Mouse)
+-- アンチキック＆Idled無効化
 player.Idled:Connect(function()
-    local vu = game:GetService("VirtualUser")
-    vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-    task.wait(1)
-    vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    local VirtualUser = game:GetService("VirtualUser")
+    VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    wait(1)
+    VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
 end)
-
 StarterGui:SetCore("ResetButtonCallback", false)
 
--- ===== UI Setup =====
+-- ===== UI構築(あなたのコードベース) =====
 local playerGui = player:WaitForChild("PlayerGui")
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DaxhabUI"
@@ -35,16 +24,14 @@ screenGui.IgnoreGuiInset = true
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- Main frame (initial size: 1/3 screen)
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0.33, 0, 0.45, 0)
-mainFrame.Position = UDim2.new(0.33, 0, 0.33, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(10,10,10)
+mainFrame.Size = UDim2.new(0.35, 0, 0.45, 0)
+mainFrame.Position = UDim2.new(0.33, 0, 0.5, 0)
+mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Parent = screenGui
 
--- Drag logic
 local dragging, dragInput, dragStart, startPos
 mainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -68,39 +55,56 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Logo Label (OnePiece風 "dax出現！"のフォント代替)
-local logoText = "dax出現！"
-local logoLabel = Instance.new("TextLabel")
-logoLabel.Size = UDim2.new(1,0,0.15,0)
-logoLabel.Position = UDim2.new(0,0,0,0)
-logoLabel.BackgroundTransparency = 1
-logoLabel.Font = Enum.Font.Antique  -- 太字風フォント代替
-logoLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
-logoLabel.TextScaled = true
-logoLabel.TextStrokeColor3 = Color3.new(0,0,0)
-logoLabel.TextStrokeTransparency = 0.3
-logoLabel.Text = logoText
-logoLabel.Parent = mainFrame
+-- 3Dロゴ
+local logoText = "！daxhab！"
+local logoHolder = Instance.new("Frame")
+logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
+logoHolder.Position = UDim2.new(0, 0, 0, 0)
+logoHolder.BackgroundTransparency = 1
+logoHolder.Parent = mainFrame
 
--- Scroll log frame
+local logoLabels = {}
+for i = 1, #logoText do
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0, 15, 1, 0)
+    lbl.Position = UDim2.new(0, 15 * (i - 1), 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Font = Enum.Font.Code
+    lbl.TextScaled = true
+    lbl.Text = logoText:sub(i, i)
+    lbl.TextStrokeTransparency = 0
+    lbl.TextStrokeColor3 = Color3.new(0, 1, 0)
+    lbl.TextColor3 = Color3.fromHSV((tick() * 0.15 + i * 0.05) % 1, 1, 1)
+    lbl.Parent = logoHolder
+    table.insert(logoLabels, lbl)
+end
+RunService.RenderStepped:Connect(function()
+    for i, lbl in ipairs(logoLabels) do
+        local offset = math.sin(tick() * 8 + i) * 5
+        lbl.Position = UDim2.new(0, 15 * (i - 1), 0, offset)
+        lbl.TextColor3 = Color3.fromHSV((tick() * 0.25 + i * 0.07) % 1, 1, 1)
+        lbl.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
+    end
+end)
+
+-- ログスクロールフレーム
 local logFrame = Instance.new("ScrollingFrame")
-logFrame.Size = UDim2.new(1, -10, 0.6, -40)
-logFrame.Position = UDim2.new(0, 5, 0.15, 35)
-logFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+logFrame.Size = UDim2.new(1, -10, 0.5, -10)
+logFrame.Position = UDim2.new(0, 5, 0.2, 5)
+logFrame.BackgroundColor3 = Color3.new(0, 0, 0)
 logFrame.ScrollBarThickness = 6
 logFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-logFrame.CanvasSize = UDim2.new(0,0,0,0)
+logFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 logFrame.Parent = mainFrame
 
-local uiListLayout = Instance.new("UIListLayout", logFrame)
-uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-uiListLayout.Padding = UDim.new(0, 4)
+local UIListLayout = Instance.new("UIListLayout", logFrame)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
-local function addLog(text: string)
+local function addLog(text)
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1,0,0,20)
+    lbl.Size = UDim2.new(1, 0, 0, 18)
     lbl.BackgroundTransparency = 1
-    lbl.TextColor3 = Color3.fromRGB(0,255,0)
+    lbl.TextColor3 = Color3.fromRGB(0, 255, 0)
     lbl.Font = Enum.Font.Code
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Text = "> " .. text
@@ -109,192 +113,39 @@ local function addLog(text: string)
     logFrame.CanvasPosition = Vector2.new(0, logFrame.AbsoluteCanvasSize.Y)
 end
 
--- Input box for height
+-- スタッド入力欄＆表示
 local heightInput = Instance.new("TextBox")
-heightInput.Size = UDim2.new(0.35, 0, 0.1, 0)
-heightInput.Position = UDim2.new(0.02, 0, 0.78, 0)
-heightInput.BackgroundColor3 = Color3.fromRGB(25,25,25)
-heightInput.TextColor3 = Color3.fromRGB(0,255,0)
-heightInput.PlaceholderText = "Warp Height (studs)"
+heightInput.Size = UDim2.new(0.3, 0, 0.12, 0)
+heightInput.Position = UDim2.new(0.68, 0, 0.63, 0)
+heightInput.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+heightInput.TextColor3 = Color3.fromRGB(0, 255, 0)
+heightInput.PlaceholderText = "↑スタッド"
 heightInput.Text = "40"
 heightInput.TextScaled = true
 heightInput.Font = Enum.Font.Code
 heightInput.ClearTextOnFocus = false
 heightInput.Parent = mainFrame
 
-local currentHeightLabel = Instance.new("TextLabel")
-currentHeightLabel.Size = UDim2.new(0.3, 0, 0.1, 0)
-currentHeightLabel.Position = UDim2.new(0.39, 0, 0.78, 0)
-currentHeightLabel.BackgroundTransparency = 1
-currentHeightLabel.TextColor3 = Color3.fromRGB(0,255,0)
-currentHeightLabel.Font = Enum.Font.Code
-currentHeightLabel.TextScaled = true
-currentHeightLabel.Text = "↑: 40"
-currentHeightLabel.Parent = mainFrame
+local currentHeight = Instance.new("TextLabel")
+currentHeight.Size = UDim2.new(0.3, 0, 0.12, 0)
+currentHeight.Position = UDim2.new(0.68, 0, 0.77, 0)
+currentHeight.BackgroundTransparency = 1
+currentHeight.TextColor3 = Color3.fromRGB(0, 255, 0)
+currentHeight.Font = Enum.Font.Code
+currentHeight.TextScaled = true
+currentHeight.Text = "↑: 40"
+currentHeight.Parent = mainFrame
 
 heightInput:GetPropertyChangedSignal("Text"):Connect(function()
     local val = tonumber(heightInput.Text)
     if val then
-        currentHeightLabel.Text = "↑: " .. tostring(val)
+        currentHeight.Text = "↑: " .. tostring(val)
     else
-        currentHeightLabel.Text = "↑: ?"
+        currentHeight.Text = "↑: ?"
     end
 end)
 
--- =====================
--- Emit purple glow on character for X seconds
-local function emitPurpleGlow(char, duration)
-    if not char then return end
-    local glowParts = {}
-
-    for _, part in ipairs(char:GetChildren()) do
-        if part:IsA("BasePart") then
-            local glow = Instance.new("PointLight")
-            glow.Color = Color3.fromRGB(170, 0, 255)
-            glow.Range = 10
-            glow.Brightness = 3
-            glow.Shadows = true
-            glow.Parent = part
-            table.insert(glowParts, glow)
-        end
-    end
-
-    delay(duration, function()
-        for _, glow in ipairs(glowParts) do
-            if glow and glow.Parent then
-                glow:Destroy()
-            end
-        end
-    end)
-end
-
--- Broadcast "dax出現！" to all players
-remoteEvent.OnServerEvent:Connect(function(plr)
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= plr then
-            local msgGui = Instance.new("ScreenGui")
-            msgGui.Name = "DaxMessage"
-            msgGui.ResetOnSpawn = false
-            msgGui.Parent = p:WaitForChild("PlayerGui")
-
-            local msgLabel = Instance.new("TextLabel")
-            msgLabel.Size = UDim2.new(1,0,1,0)
-            msgLabel.BackgroundTransparency = 1
-            msgLabel.Font = Enum.Font.Antique -- 太字風
-            msgLabel.TextColor3 = Color3.fromRGB(255,0,0)
-            msgLabel.TextScaled = true
-            msgLabel.TextStrokeColor3 = Color3.new(0,0,0)
-            msgLabel.TextStrokeTransparency = 0
-            msgLabel.Text = "dax出現！"
-            msgLabel.TextWrapped = true
-            msgLabel.TextYAlignment = Enum.TextYAlignment.Center
-            msgLabel.Parent = msgGui
-
-            delay(3, function()
-                if msgGui and msgGui.Parent then
-                    msgGui:Destroy()
-                end
-            end)
-        end
-    end
-end)
-
--- ワープ関数
-local function safeWarp(height)
-    local char = player.Character or player.CharacterAdded:Wait()
-    local root = char:FindFirstChild("HumanoidRootPart")
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if not root then
-        addLog("HumanoidRootPart not found")
-        return
-    end
-    local h = tonumber(height) or 40
-    local targetPos = root.Position + Vector3.new(0, h, 0)
-
-    -- 即着地用 - 着地位置計算して地面を検出
-    local ray = Ray.new(targetPos, Vector3.new(0, -1000, 0))
-    local hit, pos = workspace:FindPartOnRayWithWhitelist(ray, {workspace.Terrain, workspace})
-    if hit then
-        targetPos = Vector3.new(targetPos.X, pos.Y + 3, targetPos.Z) -- 少し浮かせて着地位置調整
-    end
-
-    -- ワープ開始ログ
-    addLog(("Warping ↑ %d studs..."):format(h))
-
-    -- 発光エフェクトON
-    emitPurpleGlow(char, 4)
-
-    -- ワープ実行
-    root.CFrame = CFrame.new(targetPos)
-    root.Velocity = Vector3.zero
-    root.RotVelocity = Vector3.zero
-
-    -- ネットワーク所有権強制
-    pcall(function() root:SetNetworkOwner(player) end)
-
-    -- 全員にdax出現メッセージ送信（自分にも）
-    remoteEvent:FireServer(player)
-
-    -- 10秒間巻き戻し防止
-    local startTime = tick()
-    local conn
-    conn = RunService.Heartbeat:Connect(function()
-        if tick() - startTime > 10 then
-            conn:Disconnect()
-            if humanoid then
-                humanoid.PlatformStand = false
-                humanoid:ChangeState(Enum.HumanoidStateType.Running)
-            end
-            addLog("Warp protection ended")
-            return
-        end
-        if root and root.Parent then
-            root.CFrame = CFrame.new(targetPos)
-            root.Velocity = Vector3.zero
-            root.RotVelocity = Vector3.zero
-            pcall(function() root:SetNetworkOwner(player) end)
-            if humanoid then
-                humanoid.Health = humanoid.MaxHealth
-                humanoid.PlatformStand = false
-            end
-        else
-            conn:Disconnect()
-            addLog("Warp protection aborted: RootPart missing")
-        end
-    end)
-end
-
--- ワープボタン
-local warpButton = Instance.new("TextButton")
-warpButton.Size = UDim2.new(0.4, 0, 0.1, 0)
-warpButton.Position = UDim2.new(0.05, 0, 0.9, 0)
-warpButton.BackgroundColor3 = Color3.fromRGB(100, 0, 255)
-warpButton.TextColor3 = Color3.new(1,1,1)
-warpButton.Font = Enum.Font.Code
-warpButton.TextScaled = true
-warpButton.Text = "Warp"
-warpButton.Parent = mainFrame
-
-warpButton.MouseButton1Click:Connect(function()
-    local val = tonumber(heightInput.Text)
-    if not val then
-        addLog("Invalid height input")
-        return
-    end
-    safeWarp(val)
-end)
-
--- 透明化トグル
-local transparencyButton = Instance.new("TextButton")
-transparencyButton.Size = UDim2.new(0.35, 0, 0.1, 0)
-transparencyButton.Position = UDim2.new(0.47, 0, 0.9, 0)
-transparencyButton.BackgroundColor3 = Color3.fromRGB(25,25,25)
-transparencyButton.TextColor3 = Color3.fromRGB(0,255,0)
-transparencyButton.Font = Enum.Font.Code
-transparencyButton.TextScaled = true
-transparencyButton.Text = "透明化: OFF"
-transparencyButton.Parent = mainFrame
-
+-- 透明化トグル状態
 local isInvisible = false
 
 local function setInvisible(state)
@@ -327,13 +178,35 @@ local function setInvisible(state)
     end
 end
 
+-- 透明化ボタン
+local transparencyButton = Instance.new("TextButton")
+transparencyButton.Size = UDim2.new(0.65, 0, 0.15, 0)
+transparencyButton.Position = UDim2.new(0.025, 0, 0.85, 0)
+transparencyButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+transparencyButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+transparencyButton.Font = Enum.Font.Code
+transparencyButton.TextScaled = true
+transparencyButton.Text = "[ 透明化: OFF ]"
+transparencyButton.Parent = mainFrame
+
+local function animateButton(btn)
+    TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
+        BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+    }):Play()
+    task.wait(0.15)
+    TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
+        BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    }):Play()
+end
+
 transparencyButton.MouseButton1Click:Connect(function()
     isInvisible = not isInvisible
-    transparencyButton.Text = "透明化: " .. (isInvisible and "ON" or "OFF")
+    animateButton(transparencyButton)
+    transparencyButton.Text = "[ 透明化: " .. (isInvisible and "ON" or "OFF") .. " ]"
     setInvisible(isInvisible)
 end)
 
--- 縮小ボタン
+-- 縮小/拡大ボタン
 local shrinkButton = Instance.new("TextButton")
 shrinkButton.Size = UDim2.new(0.15, 0, 0.07, 0)
 shrinkButton.Position = UDim2.new(0.85, 0, 0, 0)
@@ -361,7 +234,159 @@ shrinkButton.MouseButton1Click:Connect(function()
     isShrunk = not isShrunk
 end)
 
--- リセット防御
+-- ワープ時の紫発光エフェクト
+local function emitPurpleGlow(char, duration)
+    if not char then return end
+    local glowParts = {}
+
+    for _, part in ipairs(char:GetChildren()) do
+        if part:IsA("BasePart") then
+            local glow = Instance.new("PointLight")
+            glow.Color = Color3.fromRGB(170, 0, 255)
+            glow.Range = 10
+            glow.Brightness = 3
+            glow.Shadows = true
+            glow.Parent = part
+            table.insert(glowParts, glow)
+        end
+    end
+
+    delay(duration, function()
+        for _, glow in ipairs(glowParts) do
+            if glow and glow.Parent then
+                glow:Destroy()
+            end
+        end
+    end)
+end
+
+-- ワープ時に「dax出現！」を赤文字で全プレイヤーに表示（ローカル処理）
+local function showDaxMessage()
+    for _, p in pairs(Players:GetPlayers()) do
+        local pg = p:FindFirstChild("PlayerGui")
+        if pg then
+            local existingGui = pg:FindFirstChild("DaxMessageGui")
+            if existingGui then existingGui:Destroy() end
+
+            local msgGui = Instance.new("ScreenGui")
+            msgGui.Name = "DaxMessageGui"
+            msgGui.ResetOnSpawn = false
+            msgGui.Parent = pg
+
+            local msgLabel = Instance.new("TextLabel")
+            msgLabel.Size = UDim2.new(1,0,1,0)
+            msgLabel.Position = UDim2.new(0,0,0,0)
+            msgLabel.BackgroundTransparency = 1
+            msgLabel.Font = Enum.Font.Antique -- 太字風でドンッ風
+            msgLabel.TextColor3 = Color3.fromRGB(255,0,0)
+            msgLabel.TextScaled = true
+            msgLabel.TextStrokeColor3 = Color3.new(0,0,0)
+            msgLabel.TextStrokeTransparency = 0
+            msgLabel.Text = "dax出現！"
+            msgLabel.TextWrapped = true
+            msgLabel.TextYAlignment = Enum.TextYAlignment.Center
+            msgLabel.Parent = msgGui
+
+            -- フェードアウトアニメーション
+            spawn(function()
+                wait(2.5)
+                for i = 1, 20 do
+                    msgLabel.TextTransparency = i * 0.05
+                    msgLabel.TextStrokeTransparency = i * 0.05
+                    wait(0.05)
+                end
+                msgGui:Destroy()
+            end)
+        end
+    end
+end
+
+-- ワープ関数（改良完全版）
+local function safeWarp(height)
+    local char = player.Character or player.CharacterAdded:Wait()
+    local root = char:FindFirstChild("HumanoidRootPart")
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not root then
+        addLog("HumanoidRootPart not found")
+        return
+    end
+
+    local h = tonumber(height) or 40
+    local targetPos = root.Position + Vector3.new(0, h, 0)
+
+    if humanoid then
+        humanoid.PlatformStand = false
+        humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+        humanoid.Health = humanoid.MaxHealth
+    end
+
+    -- ワープ時発光＆全員表示
+    emitPurpleGlow(char, 3)
+    showDaxMessage()
+    addLog("Warped ↑ "..tostring(h).." studs")
+
+    root.CFrame = CFrame.new(targetPos)
+    root.Velocity = Vector3.zero
+    root.RotVelocity = Vector3.zero
+
+    pcall(function()
+        root:SetNetworkOwner(player)
+    end)
+
+    -- 10秒巻き戻し防止＆復活監視
+    local startTime = tick()
+    local conn
+    conn = RunService.Heartbeat:Connect(function()
+        if tick() - startTime > 10 then
+            conn:Disconnect()
+            if humanoid then
+                humanoid.PlatformStand = false
+                humanoid:ChangeState(Enum.HumanoidStateType.Running)
+            end
+            addLog("Warp protection ended")
+            return
+        end
+        if root and root.Parent then
+            root.CFrame = CFrame.new(targetPos)
+            root.Velocity = Vector3.zero
+            root.RotVelocity = Vector3.zero
+            pcall(function()
+                root:SetNetworkOwner(player)
+            end)
+            if humanoid and humanoid.Health < humanoid.MaxHealth then
+                humanoid.Health = humanoid.MaxHealth
+            end
+            if humanoid and humanoid.PlatformStand then
+                humanoid.PlatformStand = false
+            end
+        else
+            conn:Disconnect()
+            addLog("Warp protection aborted: RootPart missing")
+        end
+    end)
+end
+
+-- ワープボタン
+local warpButton = Instance.new("TextButton")
+warpButton.Size = UDim2.new(0.4, 0, 0.1, 0)
+warpButton.Position = UDim2.new(0.3, 0, 0.75, 0)
+warpButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+warpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+warpButton.Font = Enum.Font.Code
+warpButton.TextScaled = true
+warpButton.Text = "Warp"
+warpButton.Parent = mainFrame
+
+warpButton.MouseButton1Click:Connect(function()
+    local val = tonumber(heightInput.Text)
+    if not val then
+        addLog("Invalid height input")
+        return
+    end
+    safeWarp(val)
+end)
+
+-- リセット完全防御モジュール
 local function protectCharacter()
     local char = player.Character or player.CharacterAdded:Wait()
     local humanoid = char:WaitForChild("Humanoid")
@@ -369,10 +394,9 @@ local function protectCharacter()
 
     humanoid.BreakJointsOnDeath = false
 
-    -- 死亡即復活処理
-    humanoid.StateChanged:Connect(function(_, newState)
-        if newState == Enum.HumanoidStateType.Dead then
-            addLog("死亡検出 - 即復活開始")
+    humanoid.StateChanged:Connect(function(_, new)
+        if new == Enum.HumanoidStateType.Dead then
+            addLog("死亡検出 - 即回復処理開始")
             humanoid.Health = humanoid.MaxHealth
             humanoid.PlatformStand = false
             humanoid:ChangeState(Enum.HumanoidStateType.Running)
@@ -397,4 +421,4 @@ end
 player.CharacterAdded:Connect(protectCharacter)
 protectCharacter()
 
-addLog("起動完了：daxhab / 作成者：dax")
+addLog("起動完了: ！daxhab！ / 作成者: dax")
