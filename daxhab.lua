@@ -11,17 +11,11 @@ local player = Players.LocalPlayer
 -- アンチキック＆Idled無効化
 player.Idled:Connect(function()
     local VirtualUser = game:GetService("VirtualUser")
-    VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
     wait(1)
-    VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
 end)
 StarterGui:SetCore("ResetButtonCallback", false)
-
--- 足の速さとジャンプ力MAXに設定
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-humanoid.WalkSpeed = 100 -- 速さを最大に設定（デフォルト16）
-humanoid.JumpHeight = 200 -- ジャンプ力を最大に設定（デフォルト50）
 
 -- UI構築
 local playerGui = player:WaitForChild("PlayerGui")
@@ -33,9 +27,9 @@ screenGui.Parent = playerGui
 
 -- メインフレーム（ドラッグ対応）
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0.35,0,0.45,0)
-mainFrame.Position = UDim2.new(0.33,0,0.5,0)
-mainFrame.BackgroundColor3 = Color3.new(0,0,0)
+mainFrame.Size = UDim2.new(0.35, 0, 0.45, 0)
+mainFrame.Position = UDim2.new(0.33, 0, 0.5, 0)
+mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Parent = screenGui
@@ -60,41 +54,46 @@ end)
 RunService.RenderStepped:Connect(function()
     if dragging and dragInput then
         local delta = dragInput.Position - dragStart
-        mainFrame.Position = UDim2.new(startPos.X.Scale,startPos.X.Offset + delta.X,startPos.Y.Scale,startPos.Y.Offset + delta.Y)
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
 
 -- 3Dロゴ作成
 local logoText = "< daxhab / by / dax >"
 local logoHolder = Instance.new("Frame")
-logoHolder.Size = UDim2.new(1,0,0.2,0)
-logoHolder.Position = UDim2.new(0,0,0,0)
+logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
+logoHolder.Position = UDim2.new(0, 0, 0, 0)
 logoHolder.BackgroundTransparency = 1
 logoHolder.Parent = mainFrame
 
 local logoLabels = {}
 
-for i = 1, #logoText do
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(0, 15, 1, 0)
-    lbl.Position = UDim2.new(0, 15*(i-1), 0, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Font = Enum.Font.Code
-    lbl.TextScaled = true
-    lbl.Text = logoText:sub(i,i)
-    lbl.TextStrokeTransparency = 0
-    lbl.TextStrokeColor3 = Color3.new(0,1,0)
-    lbl.TextColor3 = Color3.fromHSV((tick()*0.2 + i*0.05)%1,1,1)
-    lbl.Parent = logoHolder
-    table.insert(logoLabels, lbl)
+-- 点字のように1文字ずつ出るアニメーション
+local function createLogoText()
+    for i = 1, #logoText do
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(0, 15, 1, 0)
+        lbl.Position = UDim2.new(0, 15 * (i - 1), 0, 0)
+        lbl.BackgroundTransparency = 1
+        lbl.Font = Enum.Font.Code
+        lbl.TextScaled = true
+        lbl.Text = logoText:sub(i, i)
+        lbl.TextStrokeTransparency = 0
+        lbl.TextStrokeColor3 = Color3.new(0, 1, 0)
+        lbl.TextColor3 = Color3.fromHSV((tick() * 0.2 + i * 0.05) % 1, 1, 1)
+        lbl.Parent = logoHolder
+        table.insert(logoLabels, lbl)
+    end
 end
+
+createLogoText()
 
 -- 3D風アニメーション
 RunService.RenderStepped:Connect(function()
     for i, lbl in ipairs(logoLabels) do
-        local offset = math.sin(tick()*10 + i)*5
-        lbl.Position = UDim2.new(0, 15*(i-1), 0, offset)
-        lbl.TextColor3 = Color3.fromHSV((tick()*0.3 + i*0.07)%1, 1, 1)
+        local offset = math.sin(tick() * 10 + i) * 5
+        lbl.Position = UDim2.new(0, 15 * (i - 1), 0, offset)
+        lbl.TextColor3 = Color3.fromHSV((tick() * 0.3 + i * 0.07) % 1, 1, 1)
         lbl.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
     end
 end)
@@ -117,42 +116,6 @@ logBox.Parent = mainFrame
 local function addLog(text)
     logBox.Text = logBox.Text .. "\n> " .. text
 end
-
--- スタッド入力欄
-local heightInput = Instance.new("TextBox")
-heightInput.Size = UDim2.new(0.3, 0, 0.12, 0)
-heightInput.Position = UDim2.new(0.68, 0, 0.63, 0)
-heightInput.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-heightInput.TextColor3 = Color3.fromRGB(0, 255, 0)
-heightInput.PlaceholderText = "↑スタッド"
-heightInput.Text = "40"
-heightInput.TextScaled = true
-heightInput.Font = Enum.Font.Code
-heightInput.ClearTextOnFocus = false
-heightInput.Parent = mainFrame
-
-local currentHeight = Instance.new("TextLabel")
-currentHeight.Size = UDim2.new(0.3, 0, 0.12, 0)
-currentHeight.Position = UDim2.new(0.68, 0, 0.77, 0)
-currentHeight.BackgroundTransparency = 1
-currentHeight.TextColor3 = Color3.fromRGB(0, 255, 0)
-currentHeight.Font = Enum.Font.Code
-currentHeight.TextScaled = true
-currentHeight.Text = "↑: 40"
-currentHeight.Parent = mainFrame
-
-heightInput:GetPropertyChangedSignal("Text"):Connect(function()
-    local val = tonumber(heightInput.Text)
-    if val then
-        currentHeight.Text = "↑: "..tostring(val)
-    else
-        currentHeight.Text = "↑: ?"
-    end
-end)
-
--- 起動完了メッセージ
-addLog("起動完了! キャラクターは透明化され、足の速さとジャンプ力が最大になりました。")
-addLog("スタッド数を設定して座標変更ボタンをクリックしてください。")
 
 -- 透明化機能
 local function makeInvisible()
@@ -193,6 +156,25 @@ invisibleButton.MouseButton1Click:Connect(function()
     makeInvisible()
 end)
 
+-- 座標変更機能
+local function changePosition()
+    local height = tonumber(heightInput.Text) or 40
+    local targetPosition = Vector3.new(0, height, 0)
+    
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    
+    -- キャラクターをアンカーしてリセット防止
+    humanoidRootPart.Anchored = true
+    humanoidRootPart.CFrame = CFrame.new(targetPosition)
+    
+    -- プレイヤーの位置が変更されたことをログに追加
+    addLog("座標変更完了: " .. targetPosition)
+
+    -- アンカーを元に戻す（リセット防止）
+    humanoidRootPart.Anchored = false
+end
+
 -- 座標変更ボタン
 local changeCoordsButton = Instance.new("TextButton")
 changeCoordsButton.Size = UDim2.new(0.65, 0, 0.15, 0)
@@ -201,24 +183,12 @@ changeCoordsButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 changeCoordsButton.TextColor3 = Color3.fromRGB(0, 255, 0)
 changeCoordsButton.Font = Enum.Font.Code
 changeCoordsButton.TextScaled = true
-changeCoordsButton.Text = "[ MOVE ↑ ]"
+changeCoordsButton.Text = "[ CHANGE COORDS ]"
 changeCoordsButton.Parent = mainFrame
 
--- 座標変更（指定されたスタッド数）
 changeCoordsButton.MouseButton1Click:Connect(function()
-    local height = tonumber(heightInput.Text)
-    if not height then
-        addLog("無効なスタッド数")
-        return
-    end
-    addLog("移動中... ("..tostring(height).." stud)")
-
-    -- プレイヤーを指定されたスタッド数だけ移動
-    local character = player.Character or player.CharacterAdded:Wait()
-    local root = character:WaitForChild("HumanoidRootPart")
-    local targetPosition = root.Position + Vector3.new(0, height, 0)
-
-    -- 透明化したままで座標変更
-    root.CFrame = CFrame.new(targetPosition)
-    addLog("座標変更成功！ ("..tostring(height).." stud 上)")
+    changePosition()
 end)
+
+-- 起動完了メッセージ
+addLog("起動完了! キャラクターは透明化され、スタッド数を設定して座標変更ボタンをクリックしてください。")
