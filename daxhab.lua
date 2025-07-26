@@ -58,39 +58,38 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ロゴとログの設定（同じ処理を使用）
+-- ロゴ部分修正
+local logoText = "daxhab"
+local logoHolder = Instance.new("Frame")
+logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
+logoHolder.Position = UDim2.new(0, 0, 0, 0)
+logoHolder.BackgroundTransparency = 1
+logoHolder.Parent = mainFrame
 
--- スタッド数変更入力
-local heightInput = Instance.new("TextBox")
-heightInput.Size = UDim2.new(0.3, 0, 0.12, 0)
-heightInput.Position = UDim2.new(0.68, 0, 0.63, 0)
-heightInput.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-heightInput.TextColor3 = Color3.fromRGB(0, 255, 0)
-heightInput.PlaceholderText = "↑スタッド"
-heightInput.Text = "40"
-heightInput.TextScaled = true
-heightInput.Font = Enum.Font.Code
-heightInput.ClearTextOnFocus = false
-heightInput.Parent = mainFrame
+local logoLabel = Instance.new("TextLabel")
+logoLabel.Size = UDim2.new(0, 200, 1, 0)
+logoLabel.Position = UDim2.new(0.5, -100, 0, 0)
+logoLabel.BackgroundTransparency = 1
+logoLabel.Font = Enum.Font.Code
+logoLabel.TextScaled = true
+logoLabel.Text = logoText
+logoLabel.TextStrokeTransparency = 0
+logoLabel.TextStrokeColor3 = Color3.new(0, 1, 0)
+logoLabel.TextColor3 = Color3.fromHSV(tick() * 0.2, 1, 1)
+logoLabel.Parent = logoHolder
 
-local currentHeight = Instance.new("TextLabel")
-currentHeight.Size = UDim2.new(0.3, 0, 0.12, 0)
-currentHeight.Position = UDim2.new(0.68, 0, 0.77, 0)
-currentHeight.BackgroundTransparency = 1
-currentHeight.TextColor3 = Color3.fromRGB(0, 255, 0)
-currentHeight.Font = Enum.Font.Code
-currentHeight.TextScaled = true
-currentHeight.Text = "↑: 40"
-currentHeight.Parent = mainFrame
-
-heightInput:GetPropertyChangedSignal("Text"):Connect(function()
-    local val = tonumber(heightInput.Text)
-    if val then
-        currentHeight.Text = "↑: " .. tostring(val)
-    else
-        currentHeight.Text = "↑: ?"
-    end
-end)
+-- 作成者メッセージ
+local creatorMessage = Instance.new("TextLabel")
+creatorMessage.Size = UDim2.new(1, -10, 0.1, 0)
+creatorMessage.Position = UDim2.new(0, 5, 0.9, 5)
+creatorMessage.BackgroundTransparency = 1
+creatorMessage.TextColor3 = Color3.fromRGB(0, 255, 0)
+creatorMessage.Font = Enum.Font.Code
+creatorMessage.TextScaled = true
+creatorMessage.Text = "作成者: dax"
+creatorMessage.TextStrokeTransparency = 0
+creatorMessage.TextStrokeColor3 = Color3.new(0, 1, 0)
+creatorMessage.Parent = screenGui
 
 -- 透明化機能
 local function makeInvisible()
@@ -131,6 +130,37 @@ invisibleButton.MouseButton1Click:Connect(function()
 end)
 
 -- 座標変更
+local heightInput = Instance.new("TextBox")
+heightInput.Size = UDim2.new(0.3, 0, 0.12, 0)
+heightInput.Position = UDim2.new(0.68, 0, 0.63, 0)
+heightInput.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+heightInput.TextColor3 = Color3.fromRGB(0, 255, 0)
+heightInput.PlaceholderText = "↑スタッド"
+heightInput.Text = "40"
+heightInput.TextScaled = true
+heightInput.Font = Enum.Font.Code
+heightInput.ClearTextOnFocus = false
+heightInput.Parent = mainFrame
+
+local currentHeight = Instance.new("TextLabel")
+currentHeight.Size = UDim2.new(0.3, 0, 0.12, 0)
+currentHeight.Position = UDim2.new(0.68, 0, 0.77, 0)
+currentHeight.BackgroundTransparency = 1
+currentHeight.TextColor3 = Color3.fromRGB(0, 255, 0)
+currentHeight.Font = Enum.Font.Code
+currentHeight.TextScaled = true
+currentHeight.Text = "↑: 40"
+currentHeight.Parent = mainFrame
+
+heightInput:GetPropertyChangedSignal("Text"):Connect(function()
+    local val = tonumber(heightInput.Text)
+    if val then
+        currentHeight.Text = "↑: " .. tostring(val)
+    else
+        currentHeight.Text = "↑: ?"
+    end
+end)
+
 local function changeCoordinates()
     local character = player.Character or player.CharacterAdded:Wait()
     local root = character:WaitForChild("HumanoidRootPart")
