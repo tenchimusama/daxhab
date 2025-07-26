@@ -29,7 +29,7 @@ screenGui.Parent = playerGui
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0.35, 0, 0.45, 0)
 mainFrame.Position = UDim2.new(0.33, 0, 0.5, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- 背景色を変更
+mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Parent = screenGui
@@ -97,7 +97,7 @@ end)
 local logBox = Instance.new("ScrollingFrame")
 logBox.Size = UDim2.new(1, -10, 0.5, -10)
 logBox.Position = UDim2.new(0, 5, 0.2, 5)
-logBox.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- 背景色を変更
+logBox.BackgroundColor3 = Color3.new(0, 0, 0)
 logBox.ScrollBarThickness = 12
 logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
 logBox.Font = Enum.Font.Code
@@ -173,7 +173,6 @@ local function safeWarp(height)
         root:SetNetworkOwner(player)
     end)
 
-    -- ワープ後の安定化処理
     local startTime = tick()
     local conn
     conn = RunService.Heartbeat:Connect(function()
@@ -194,7 +193,7 @@ local function safeWarp(height)
     end)
 end
 
--- ボタンの作成
+-- ボタンのデザイン
 local function createButton(position, text, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0.65, 0, 0.15, 0)
@@ -207,18 +206,11 @@ local function createButton(position, text, callback)
     btn.Parent = mainFrame
     btn.MouseButton1Click:Connect(function()
         callback()
-        animateButton(btn)
     end)
+    return btn
 end
 
--- 透明化ボタン
-createButton(UDim2.new(0.025, 0, 0.85, 0), "[ 透明化 ]", function()
-    animateButton(transparencyButton)
-    makeInvisible()
-    addLog("透明化中...")
-end)
-
--- 座標変更ボタン
+-- ワープボタン
 createButton(UDim2.new(0.025, 0, 0.7, 0), "[ 座標変更 ]", function()
     local val = tonumber(heightInput.Text)
     if not val then
@@ -226,6 +218,13 @@ createButton(UDim2.new(0.025, 0, 0.7, 0), "[ 座標変更 ]", function()
         return
     end
     safeWarp(val)
+end)
+
+-- 透明化ボタン
+createButton(UDim2.new(0.025, 0, 0.85, 0), "[ 透明化 ]", function()
+    animateButton(transparencyButton)
+    makeInvisible()
+    addLog("透明化中...")
 end)
 
 -- 起動メッセージ
