@@ -58,64 +58,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 3Dロゴ作成
-local logoText = "< daxhab >"
-local logoHolder = Instance.new("Frame")
-logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
-logoHolder.Position = UDim2.new(0, 0, 0, 0)
-logoHolder.BackgroundTransparency = 1
-logoHolder.Parent = mainFrame
-
-local logoLabels = {}
-
--- 点字のように1文字ずつ出るアニメーション
-local function createLogoText()
-    for i = 1, #logoText do
-        local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(0, 15, 1, 0)
-        lbl.Position = UDim2.new(0, 15 * (i - 1), 0, 0)
-        lbl.BackgroundTransparency = 1
-        lbl.Font = Enum.Font.Code
-        lbl.TextScaled = true
-        lbl.Text = logoText:sub(i, i)
-        lbl.TextStrokeTransparency = 0
-        lbl.TextStrokeColor3 = Color3.new(0, 1, 0)
-        lbl.TextColor3 = Color3.fromHSV((tick() * 0.2 + i * 0.05) % 1, 1, 1)
-        lbl.Parent = logoHolder
-        table.insert(logoLabels, lbl)
-    end
-end
-
-createLogoText()
-
--- 3D風アニメーション
-RunService.RenderStepped:Connect(function()
-    for i, lbl in ipairs(logoLabels) do
-        local offset = math.sin(tick() * 10 + i) * 5
-        lbl.Position = UDim2.new(0, 15 * (i - 1), 0, offset)
-        lbl.TextColor3 = Color3.fromHSV((tick() * 0.3 + i * 0.07) % 1, 1, 1)
-        lbl.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
-    end
-end)
-
--- ログ表示枠
-local logBox = Instance.new("TextLabel")
-logBox.Size = UDim2.new(1, -10, 0.5, -10)
-logBox.Position = UDim2.new(0, 5, 0.2, 5)
-logBox.BackgroundColor3 = Color3.new(0, 0, 0)
-logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
-logBox.Font = Enum.Font.Code
-logBox.TextXAlignment = Enum.TextXAlignment.Left
-logBox.TextYAlignment = Enum.TextYAlignment.Top
-logBox.TextSize = 14
-logBox.TextWrapped = true
-logBox.Text = "作成者は、daxです"
-logBox.ClipsDescendants = true
-logBox.Parent = mainFrame
-
-local function addLog(text)
-    logBox.Text = logBox.Text .. "\n> " .. text
-end
+-- ロゴとログの設定（同じ処理を使用）
 
 -- スタッド数変更入力
 local heightInput = Instance.new("TextBox")
@@ -170,7 +113,6 @@ local function makeInvisible()
             end
         end
     end
-    addLog("プレイヤーは完全に透明化され、他のプレイヤーから見えなくなります。")
 end
 
 -- 透明化ボタン
@@ -219,3 +161,46 @@ changeCoordButton.Parent = mainFrame
 changeCoordButton.MouseButton1Click:Connect(function()
     changeCoordinates()
 end)
+
+-- リセット回避強化
+local function enhancedResetProtection()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:WaitForChild("Humanoid")
+    local root = character:WaitForChild("HumanoidRootPart")
+    
+    -- プレイヤーが座標変更後にリセットされないように物理設定を調整
+    humanoid.PlatformStand = true
+    root.Anchored = true  -- 一時的にアンカーしてリセットを防ぐ
+
+    -- 数秒後にアンカー解除
+    wait(1)
+    root.Anchored = false
+    humanoid.PlatformStand = false
+end
+
+-- リセット回避強化を座標変更後に実行
+changeCoordButton.MouseButton1Click:Connect(function()
+    changeCoordinates()
+    enhancedResetProtection()
+end)
+
+-- ログ表示
+local logBox = Instance.new("TextLabel")
+logBox.Size = UDim2.new(1, -10, 0.5, -10)
+logBox.Position = UDim2.new(0, 5, 0.2, 5)
+logBox.BackgroundColor3 = Color3.new(0, 0, 0)
+logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
+logBox.Font = Enum.Font.Code
+logBox.TextXAlignment = Enum.TextXAlignment.Left
+logBox.TextYAlignment = Enum.TextYAlignment.Top
+logBox.TextSize = 14
+logBox.TextWrapped = true
+logBox.Text = ""
+logBox.ClipsDescendants = true
+logBox.Parent = mainFrame
+
+local function addLog(text)
+    logBox.Text = logBox.Text .. "\n> " .. text
+end
+
+addLog("起動完了！")
