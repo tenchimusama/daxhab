@@ -59,7 +59,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- 3Dロゴ作成
-local logoText = "< daxhab / by / dax >"
+local logoText = "！daxhab！"
 local logoHolder = Instance.new("Frame")
 logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
 logoHolder.Position = UDim2.new(0, 0, 0, 0)
@@ -221,13 +221,13 @@ local function safeChangePosition()
         addLog("無効なスタッド数")
         return
     end
-    currentHeight.Text = "↑: "..tostring(height)
-    addLog("座標変更中... (↑"..tostring(height).." stud)")
+    currentHeight.Text = "↑: " .. tostring(height)
+    addLog("座標変更中... (↑" .. tostring(height) .. " stud)")
 
     -- 座標変更処理
     local offset = Vector3.new(0, height, 0)
     root.CFrame = root.CFrame + offset
-    addLog("座標変更成功（↑"..tostring(height).." stud）")
+    addLog("座標変更成功（↑" .. tostring(height) .. " stud）")
 end
 
 changePositionButton.MouseButton1Click:Connect(function()
@@ -242,6 +242,6 @@ transparencyButton.MouseButton1Click:Connect(function()
 end)
 
 -- 起動メッセージ
-addLog("起動完了: daxhab / 作成者: dax")
+addLog("起動完了: ！daxhab！ / 作成者: dax")
 
 -- ボタンなどの動作
