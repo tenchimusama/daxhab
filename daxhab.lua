@@ -16,7 +16,7 @@ player.Idled:Connect(function()
 end)
 StarterGui:SetCore("ResetButtonCallback", false)
 
--- ===== UI構築(元のまま) =====
+-- UI構築
 local playerGui = player:WaitForChild("PlayerGui")
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DaxhabUI"
@@ -145,8 +145,9 @@ heightInput:GetPropertyChangedSignal("Text"):Connect(function()
     end
 end)
 
--- 保護トグル状態（前は透明化だった箇所）
+-- 保護トグル状態
 local isProtected = false
+local protectionConnection -- コネクション格納用
 
 local function protectCharacter()
     local char = player.Character or player.CharacterAdded:Wait()
@@ -164,7 +165,8 @@ local function protectCharacter()
         end
     end)
 
-    RunService.Heartbeat:Connect(function()
+    if protectionConnection then protectionConnection:Disconnect() end
+    protectionConnection = RunService.Heartbeat:Connect(function()
         if humanoid.Health < humanoid.MaxHealth then
             humanoid.Health = humanoid.MaxHealth
             humanoid.PlatformStand = false
@@ -177,24 +179,26 @@ local function protectCharacter()
             end)
         end
     end)
+    addLog("保護モードを起動しました")
 end
 
-local protectionConn -- 保護監視コネクション用
+local function stopProtection()
+    if protectionConnection then
+        protectionConnection:Disconnect()
+        protectionConnection = nil
+    end
+    addLog("保護モードを停止しました（リロードが必要です）")
+end
 
 local function toggleProtection(state)
     if state then
-        if not protectionConn then
-            protectCharacter()
-            addLog("保護モード: ON")
-            protectionConn = true -- シンプルに接続済みを示すだけ
-        end
+        protectCharacter()
     else
-        -- 実質解除は難しいがここでログだけ切替え
-        addLog("保護モード: OFF（リロードで解除）")
+        stopProtection()
     end
 end
 
--- 透明化ボタンを保護ボタンに差し替え
+-- 保護ボタン（旧透明化ボタンの場所・見た目そのまま）
 local protectionButton = Instance.new("TextButton")
 protectionButton.Size = UDim2.new(0.65, 0, 0.15, 0)
 protectionButton.Position = UDim2.new(0.025, 0, 0.85, 0)
@@ -216,14 +220,10 @@ protectionButton.MouseButton1Click:Connect(function()
     }):Play()
 
     protectionButton.Text = "[ 保護: " .. (isProtected and "ON" or "OFF") .. " ]"
-    if isProtected then
-        toggleProtection(true)
-    else
-        toggleProtection(false)
-    end
+    toggleProtection(isProtected)
 end)
 
--- 縮小/拡大ボタン（元のまま）
+-- 縮小/拡大ボタン（そのまま）
 local shrinkButton = Instance.new("TextButton")
 shrinkButton.Size = UDim2.new(0.15, 0, 0.07, 0)
 shrinkButton.Position = UDim2.new(0.85, 0, 0, 0)
@@ -251,7 +251,7 @@ shrinkButton.MouseButton1Click:Connect(function()
     isShrunk = not isShrunk
 end)
 
--- ワープ機能（元のまま）
+-- ワープ機能
 local function safeWarp(height)
     local char = player.Character or player.CharacterAdded:Wait()
     local root = char:FindFirstChild("HumanoidRootPart")
@@ -331,7 +331,7 @@ warpButton.MouseButton1Click:Connect(function()
     safeWarp(val)
 end)
 
--- 保護はキャラ追加時に常に監視する
+-- CharacterAddedで保護起動（ONのとき）
 player.CharacterAdded:Connect(function()
     if isProtected then
         protectCharacter()
