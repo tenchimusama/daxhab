@@ -17,20 +17,6 @@ player.Idled:Connect(function()
 end)
 StarterGui:SetCore("ResetButtonCallback", false)
 
--- デバイス検出およびデルタエグゼキューター対応
-local function isDeltaExecutor()
-    if player.Name == "DeltaExecutor" then
-        return true
-    end
-    -- 他のエクスプロイターのチェックを追加する場合ここで対応
-    return false
-end
-
--- エクスプロイター検出
-if isDeltaExecutor() then
-    error("不正なエクスプロイターが検出されました。")
-end
-
 -- UI構築
 local playerGui = player:WaitForChild("PlayerGui")
 local screenGui = Instance.new("ScreenGui")
@@ -72,7 +58,42 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ログ表示枠（スクロール可能）
+-- 3Dロゴ作成
+local logoText = "！daxhab！"
+local logoHolder = Instance.new("Frame")
+logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
+logoHolder.Position = UDim2.new(0, 0, 0, 0)
+logoHolder.BackgroundTransparency = 1
+logoHolder.Parent = mainFrame
+
+local logoLabels = {}
+
+for i = 1, #logoText do
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0, 15, 1, 0)
+    lbl.Position = UDim2.new(0, 15 * (i - 1), 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Font = Enum.Font.Code
+    lbl.TextScaled = true
+    lbl.Text = logoText:sub(i, i)
+    lbl.TextStrokeTransparency = 0
+    lbl.TextStrokeColor3 = Color3.new(0, 1, 0)
+    lbl.TextColor3 = Color3.fromHSV((tick() * 0.2 + i * 0.05) % 1, 1, 1)
+    lbl.Parent = logoHolder
+    table.insert(logoLabels, lbl)
+end
+
+-- 3D風アニメーション
+RunService.RenderStepped:Connect(function()
+    for i, lbl in ipairs(logoLabels) do
+        local offset = math.sin(tick() * 10 + i) * 5
+        lbl.Position = UDim2.new(0, 15 * (i - 1), 0, offset)
+        lbl.TextColor3 = Color3.fromHSV((tick() * 0.3 + i * 0.07) % 1, 1, 1)
+        lbl.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
+    end
+end)
+
+-- ログ表示枠（スクロール対応）
 local logBox = Instance.new("TextLabel")
 logBox.Size = UDim2.new(1, -10, 0.5, -10)
 logBox.Position = UDim2.new(0, 5, 0.2, 5)
@@ -89,8 +110,6 @@ logBox.Parent = mainFrame
 
 local function addLog(text)
     logBox.Text = logBox.Text .. "\n> " .. text
-    -- スクロール
-    logBox.CanvasPosition = Vector2.new(0, logBox.TextBounds.Y - logBox.AbsoluteSize.Y)
 end
 
 -- スタッド入力欄
@@ -140,9 +159,16 @@ local function safeWarp(height)
     root.CFrame = CFrame.new(targetPos)
     addLog("Warped ↑ "..tostring(h).." studs")
 
+    -- ワープ後のリセット回避
     pcall(function()
         root:SetNetworkOwner(player)
     end)
+
+    -- 死亡リセットの回避
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.Health = humanoid.MaxHealth -- 死なないように
+    end
 
     local startTime = tick()
     local conn
@@ -195,7 +221,20 @@ transparencyButton.TextScaled = true
 transparencyButton.Text = "[ 透明化 ]"
 transparencyButton.Parent = mainFrame
 
--- ワープ時のビープ音（軽量サウンド）
+local function makeInvisible()
+    local char = player.Character or player.CharacterAdded:Wait()
+    if char then
+        -- 透明化するオブジェクト
+        for _, obj in pairs(char:GetChildren()) do
+            if obj:IsA("BasePart") then
+                obj.Transparency = 1
+                obj.CanCollide = false
+            end
+        end
+    end
+end
+
+-- 透明化ボタンのアニメーション
 local beepSound = Instance.new("Sound")
 beepSound.SoundId = "rbxassetid://911882704" -- 短いビープ音
 beepSound.Volume = 0.6
@@ -210,20 +249,6 @@ local function animateButton(btn)
     TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
         BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     }):Play()
-end
-
--- 透明化機能の実装
-local function makeInvisible()
-    local char = player.Character
-    if not char then return end
-    for _, obj in ipairs(char:GetChildren()) do
-        if obj:IsA("BasePart") then
-            obj.Transparency = 1
-        elseif obj:IsA("Accessory") then
-            obj.Handle.Transparency = 1
-        end
-    end
-    addLog("透明化完了")
 end
 
 transparencyButton.MouseButton1Click:Connect(function()
