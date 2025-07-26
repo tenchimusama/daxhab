@@ -93,23 +93,30 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ログ表示枠（スクロール対応）
-local logBox = Instance.new("TextLabel")
-logBox.Size = UDim2.new(1, -10, 0.5, -10)
-logBox.Position = UDim2.new(0, 5, 0.2, 5)
-logBox.BackgroundColor3 = Color3.new(0, 0, 0)
-logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
-logBox.Font = Enum.Font.Code
-logBox.TextXAlignment = Enum.TextXAlignment.Left
-logBox.TextYAlignment = Enum.TextYAlignment.Top
-logBox.TextSize = 14
-logBox.TextWrapped = true
-logBox.Text = "作成者: dax"
-logBox.ClipsDescendants = true
-logBox.Parent = mainFrame
+-- ✅ スクロール可能ログ
+local logFrame = Instance.new("ScrollingFrame")
+logFrame.Size = UDim2.new(1, -10, 0.5, -10)
+logFrame.Position = UDim2.new(0, 5, 0.2, 5)
+logFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+logFrame.ScrollBarThickness = 6
+logFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+logFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+logFrame.Parent = mainFrame
+
+local UIListLayout = Instance.new("UIListLayout", logFrame)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 local function addLog(text)
-    logBox.Text = logBox.Text .. "\n> " .. text
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 0, 18)
+    lbl.BackgroundTransparency = 1
+    lbl.TextColor3 = Color3.fromRGB(0, 255, 0)
+    lbl.Font = Enum.Font.Code
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Text = "> " .. text
+    lbl.Parent = logFrame
+    task.wait()
+    logFrame.CanvasPosition = Vector2.new(0, logFrame.AbsoluteCanvasSize.Y)
 end
 
 -- スタッド入力欄
@@ -159,18 +166,15 @@ local function safeWarp(height)
     root.CFrame = CFrame.new(targetPos)
     addLog("Warped ↑ "..tostring(h).." studs")
 
-    -- ワープ後のリセット回避
     pcall(function()
         root:SetNetworkOwner(player)
     end)
 
-    -- 死亡リセットの回避
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if humanoid then
-        humanoid.Health = humanoid.MaxHealth -- 死なないように
+        humanoid.Health = humanoid.MaxHealth
     end
 
-    -- リセット回避監視
     local startTime = tick()
     local conn
     conn = RunService.Heartbeat:Connect(function()
@@ -225,7 +229,6 @@ transparencyButton.Parent = mainFrame
 local function makeInvisible()
     local char = player.Character or player.CharacterAdded:Wait()
     if char then
-        -- 透明化するオブジェクト
         for _, obj in pairs(char:GetChildren()) do
             if obj:IsA("BasePart") then
                 obj.Transparency = 1
@@ -237,7 +240,7 @@ end
 
 -- 透明化ボタンのアニメーション
 local beepSound = Instance.new("Sound")
-beepSound.SoundId = "rbxassetid://911882704" -- 短いビープ音
+beepSound.SoundId = "rbxassetid://911882704"
 beepSound.Volume = 0.6
 beepSound.Parent = mainFrame
 
@@ -258,5 +261,35 @@ transparencyButton.MouseButton1Click:Connect(function()
     addLog("透明化中...")
 end)
 
--- 起動メッセージ
+-- リセット完全防御モジュール
+local function protectCharacter()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local humanoid = char:WaitForChild("Humanoid")
+
+    humanoid.BreakJointsOnDeath = false
+
+    humanoid.StateChanged:Connect(function(_, new)
+        if new == Enum.HumanoidStateType.Dead then
+            humanoid.Health = humanoid.MaxHealth
+            humanoid:ChangeState(Enum.HumanoidStateType.Running)
+        end
+    end)
+
+    RunService.Heartbeat:Connect(function()
+        if humanoid.Health < humanoid.MaxHealth then
+            humanoid.Health = humanoid.MaxHealth
+        end
+    end)
+
+    local root = char:WaitForChild("HumanoidRootPart")
+    RunService.Heartbeat:Connect(function()
+        pcall(function()
+            root:SetNetworkOwner(player)
+        end)
+    end)
+end
+
+player.CharacterAdded:Connect(protectCharacter)
+protectCharacter()
+
 addLog("起動完了: ！daxhab！ / 作成者: dax")
