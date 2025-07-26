@@ -34,6 +34,30 @@ mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Parent = screenGui
 
+-- ドラッグ処理
+local dragging, dragInput, dragStart, startPos
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
+end)
+mainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+RunService.RenderStepped:Connect(function()
+    if dragging and dragInput then
+        local delta = dragInput.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
 -- ロゴ部分修正（虹色で動く）
 local logoText = "daxhab"
 local logoHolder = Instance.new("Frame")
@@ -162,14 +186,14 @@ changeCoordButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 changeCoordButton.TextColor3 = Color3.fromRGB(0, 255, 0)
 changeCoordButton.Font = Enum.Font.Code
 changeCoordButton.TextScaled = true
-changeCoordButton.Text = "[ CHANGE POSITION ]"
+changeCoordButton.Text = "[ MOVE TO ↑ ]"
 changeCoordButton.Parent = mainFrame
 
 changeCoordButton.MouseButton1Click:Connect(function()
     changeCoordinates()
 end)
 
--- ログ表示
+-- ログ表示機能
 local logBox = Instance.new("TextLabel")
 logBox.Size = UDim2.new(1, -10, 0.5, -10)
 logBox.Position = UDim2.new(0, 5, 0.2, 5)
@@ -188,16 +212,5 @@ local function addLog(text)
     logBox.Text = logBox.Text .. "\n> " .. text
 end
 
-addLog("起動完了！")
-addLog("作成者: dax")
-
--- リセット回避強化部分
-RunService.Heartbeat:Connect(function()
-    -- 毎フレーム位置を少しずつ移動してリセットを回避
-    local character = player.Character or player.CharacterAdded:Wait()
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if root then
-        local currentPos = root.Position
-        root.CFrame = CFrame.new(currentPos + Vector3.new(0.1, 0, 0.1))  -- 少しずつ動かす
-    end
-end)
+-- 起動メッセージ
+addLog("起動完了！daxhab スクリプトが動作しています。")
