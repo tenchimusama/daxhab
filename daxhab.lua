@@ -150,122 +150,75 @@ heightInput:GetPropertyChangedSignal("Text"):Connect(function()
     end
 end)
 
--- ワープボタン
-local warpButton = Instance.new("TextButton")
-warpButton.Size = UDim2.new(0.65, 0, 0.15, 0)
-warpButton.Position = UDim2.new(0.025, 0, 0.85, 0)
-warpButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-warpButton.TextColor3 = Color3.fromRGB(0, 255, 0)
-warpButton.Font = Enum.Font.Code
-warpButton.TextScaled = true
-warpButton.Text = "[ WARP ↑ ]"
-warpButton.Parent = mainFrame
+-- 起動完了メッセージ
+addLog("起動完了! キャラクターは透明化され、足の速さとジャンプ力が最大になりました。")
+addLog("スタッド数を設定して座標変更ボタンをクリックしてください。")
 
--- ワープ時のビープ音（軽量サウンド）
-local beepSound = Instance.new("Sound")
-beepSound.SoundId = "rbxassetid://911882704" -- 短いビープ音
-beepSound.Volume = 0.6
-beepSound.Parent = mainFrame
-
-local function animateButton(btn)
-    TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
-        BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-    }):Play()
-    beepSound:Play()
-    task.wait(0.2)
-    TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
-        BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    }):Play()
-end
-
-local function setNetworkOwner(part)
-    pcall(function()
-        part:SetNetworkOwner(player)
-    end)
-end
-
-local function safeWarp()
+-- 透明化機能
+local function makeInvisible()
     local character = player.Character or player.CharacterAdded:Wait()
-    local root = character:FindFirstChild("HumanoidRootPart")
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not root or not humanoid then
-        addLog("キャラクターの主要パーツが見つかりません")
-        return
+    for _, part in ipairs(character:GetChildren()) do
+        if part:IsA("BasePart") then
+            part.Transparency = 1
+            part.CanCollide = false
+        end
     end
+
+    -- 持っているオブジェクトも透明に
+    for _, tool in ipairs(player.Backpack:GetChildren()) do
+        if tool:IsA("Tool") then
+            for _, part in ipairs(tool:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part.Transparency = 1
+                    part.CanCollide = false
+                end
+            end
+        end
+    end
+    addLog("プレイヤーは完全に透明化され、他のプレイヤーから見えなくなります。")
+end
+
+-- 透明化ボタン
+local invisibleButton = Instance.new("TextButton")
+invisibleButton.Size = UDim2.new(0.65, 0, 0.15, 0)
+invisibleButton.Position = UDim2.new(0.025, 0, 0.70, 0)
+invisibleButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+invisibleButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+invisibleButton.Font = Enum.Font.Code
+invisibleButton.TextScaled = true
+invisibleButton.Text = "[ INVISIBLE ]"
+invisibleButton.Parent = mainFrame
+
+invisibleButton.MouseButton1Click:Connect(function()
+    makeInvisible()
+end)
+
+-- 座標変更ボタン（設定されたスタッド数で）
+local changeCoordsButton = Instance.new("TextButton")
+changeCoordsButton.Size = UDim2.new(0.65, 0, 0.15, 0)
+changeCoordsButton.Position = UDim2.new(0.025, 0, 0.85, 0)
+changeCoordsButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+changeCoordsButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+changeCoordsButton.Font = Enum.Font.Code
+changeCoordsButton.TextScaled = true
+changeCoordsButton.Text = "[ MOVE ↑ ]"
+changeCoordsButton.Parent = mainFrame
+
+-- 座標変更（指定されたスタッド数）
+changeCoordsButton.MouseButton1Click:Connect(function()
     local height = tonumber(heightInput.Text)
     if not height then
         addLog("無効なスタッド数")
         return
     end
-    currentHeight.Text = "↑: "..tostring(height)
-    addLog("ワープ中... (↑"..tostring(height).." stud)")
+    addLog("移動中... ("..tostring(height).." stud)")
 
-    -- 透明化、オブジェクトを持っていても完全に透明化
-    for _, part in ipairs(character:GetChildren()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = false
-            part.Transparency = 1
-        end
-    end
+    -- プレイヤーを指定されたスタッド数だけ移動
+    local character = player.Character or player.CharacterAdded:Wait()
+    local root = character:WaitForChild("HumanoidRootPart")
+    local targetPosition = root.Position + Vector3.new(0, height, 0)
 
-    -- ワープ前に1.5スタッド浮上
-    root.CFrame = root.CFrame + Vector3.new(0,1.5,0)
-
-    local offset = Vector3.new(0, height, 0)
-    local rayParams = RaycastParams.new()
-    rayParams.FilterDescendantsInstances = {character}
-    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-    local rayResult = workspace:Raycast(root.Position, offset, rayParams)
-
-    local targetCFrame
-    if rayResult then
-        targetCFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
-        addLog("障害物検知、貫通位置に調整")
-    else
-        targetCFrame = root.CFrame + offset
-    end
-
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated,false)
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding,false)
-    humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-    humanoid.AutoRotate = true
-    humanoid.PlatformStand = false
-    humanoid.Sit = false
-
-    root.Anchored = false
-    root.Velocity = Vector3.zero
-    root.RotVelocity = Vector3.zero
-    setNetworkOwner(root)
-    root.CFrame = targetCFrame
-
-    local startTime = tick()
-    local conn
-    conn = RunService.Heartbeat:Connect(function()
-        if tick() - startTime > 6 then
-            conn:Disconnect()
-            -- ワープ後に物理判定・透明度を元に戻す
-            for _, part in ipairs(character:GetChildren()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = true
-                    part.Transparency = 0
-                end
-            end
-            return
-        end
-        if root and root.Parent then
-            root.Velocity = Vector3.zero
-            root.RotVelocity = Vector3.zero
-            root.CFrame = targetCFrame
-            humanoid.PlatformStand = false
-            humanoid.Sit = false
-            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-            setNetworkOwner(root)
-        end
-    end)
-    addLog("ワープ成功（↑"..tostring(height).." stud）")
-end
-
-warpButton.MouseButton1Click:Connect(function()
-    animateButton(warpButton)
-    safeWarp()
+    -- 透明化したままで座標変更
+    root.CFrame = CFrame.new(targetPosition)
+    addLog("座標変更成功！ ("..tostring(height).." stud 上)")
 end)
