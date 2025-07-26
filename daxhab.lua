@@ -94,138 +94,22 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ログ表示枠（スクロール対応）
-local logBox = Instance.new("ScrollingFrame")
+local logBox = Instance.new("TextLabel")
 logBox.Size = UDim2.new(1, -10, 0.5, -10)
 logBox.Position = UDim2.new(0, 5, 0.2, 5)
 logBox.BackgroundColor3 = Color3.new(0, 0, 0)
-logBox.ScrollBarThickness = 6
-logBox.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 0)
+logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
+logBox.Font = Enum.Font.Code
+logBox.TextXAlignment = Enum.TextXAlignment.Left
+logBox.TextYAlignment = Enum.TextYAlignment.Top
+logBox.TextSize = 14
+logBox.TextWrapped = true
+logBox.Text = "作成者: dax"
 logBox.ClipsDescendants = true
 logBox.Parent = mainFrame
 
-local logText = Instance.new("TextLabel")
-logText.Size = UDim2.new(1, 0, 0, 0)
---!strict
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local StarterGui = game:GetService("StarterGui")
-local UserInputService = game:GetService("UserInputService")
-local SoundService = game:GetService("SoundService")
-
-local player = Players.LocalPlayer
-
--- アンチキック＆Idled無効化
-player.Idled:Connect(function()
-    local VirtualUser = game:GetService("VirtualUser")
-    VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-    wait(1)
-    VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-end)
-StarterGui:SetCore("ResetButtonCallback", false)
-
--- UI構築
-local playerGui = player:WaitForChild("PlayerGui")
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "DaxhabUI"
-screenGui.IgnoreGuiInset = true
-screenGui.ResetOnSpawn = false
-screenGui.Parent = playerGui
-
--- メインフレーム（ドラッグ対応）
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0.35, 0, 0.45, 0)
-mainFrame.Position = UDim2.new(0.33, 0, 0.5, 0)
-mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Parent = screenGui
-
--- ドラッグ処理
-local dragging, dragInput, dragStart, startPos
-mainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = mainFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
-    end
-end)
-mainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
-RunService.RenderStepped:Connect(function()
-    if dragging and dragInput then
-        local delta = dragInput.Position - dragStart
-        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
--- 3Dロゴ作成
-local logoText = "！daxhab！"
-local logoHolder = Instance.new("Frame")
-logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
-logoHolder.Position = UDim2.new(0, 0, 0, 0)
-logoHolder.BackgroundTransparency = 1
-logoHolder.Parent = mainFrame
-
-local logoLabels = {}
-
-for i = 1, #logoText do
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(0, 15, 1, 0)
-    lbl.Position = UDim2.new(0, 15 * (i - 1), 0, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Font = Enum.Font.Code
-    lbl.TextScaled = true
-    lbl.Text = logoText:sub(i, i)
-    lbl.TextStrokeTransparency = 0
-    lbl.TextStrokeColor3 = Color3.new(0, 1, 0)
-    lbl.TextColor3 = Color3.fromHSV((tick() * 0.2 + i * 0.05) % 1, 1, 1)
-    lbl.Parent = logoHolder
-    table.insert(logoLabels, lbl)
-end
-
--- 3D風アニメーション
-RunService.RenderStepped:Connect(function()
-    for i, lbl in ipairs(logoLabels) do
-        local offset = math.sin(tick() * 10 + i) * 5
-        lbl.Position = UDim2.new(0, 15 * (i - 1), 0, offset)
-        lbl.TextColor3 = Color3.fromHSV((tick() * 0.3 + i * 0.07) % 1, 1, 1)
-        lbl.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
-    end
-end)
-
--- ログ表示枠（スクロール対応）
-local logBox = Instance.new("ScrollingFrame")
-logBox.Size = UDim2.new(1, -10, 0.5, -10)
-logBox.Position = UDim2.new(0, 5, 0.2, 5)
-logBox.BackgroundColor3 = Color3.new(0, 0, 0)
-logBox.ScrollBarThickness = 6
-logBox.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 0)
-logBox.ClipsDescendants = true
-logBox.Parent = mainFrame
-
-local logText = Instance.new("TextLabel")
-logText.Size = UDim2.new(1, 0, 0, 0)
-logText.Position = UDim2.new(0, 0, 0, 0)
-logText.BackgroundTransparency = 1
-logText.Font = Enum.Font.Code
-logText.TextColor3 = Color3.fromRGB(0, 255, 0)
-logText.TextSize = 14
-logText.TextWrapped = true
-logText.Text = "作成者: dax"
-logText.Parent = logBox
-
--- ログ追加関数（自動スクロール）
 local function addLog(text)
-    logText.Text = logText.Text .. "\n> " .. text
-    logBox.CanvasSize = UDim2.new(0, 0, 0, logText.TextBounds.Y)  -- スクロール領域のサイズを更新
-    logBox.ScrollPosition = Vector2.new(0, logBox.CanvasSize.Y.Offset)  -- 自動的にスクロール
+    logBox.Text = logBox.Text .. "\n> " .. text
 end
 
 -- スタッド入力欄
@@ -286,11 +170,7 @@ local function safeWarp(height)
         humanoid.Health = humanoid.MaxHealth -- 死なないように
     end
 
-    -- ワープ後に死亡しないように
-    humanoid.Died:Connect(function()
-        humanoid.Health = humanoid.MaxHealth
-    end)
-
+    -- リセット回避監視
     local startTime = tick()
     local conn
     conn = RunService.Heartbeat:Connect(function()
@@ -313,8 +193,8 @@ end
 
 -- ワープボタン（中央配置）
 local warpButton = Instance.new("TextButton")
-warpButton.Size = UDim2.new(0.65, 0, 0.12, 0)  -- サイズ統一
-warpButton.Position = UDim2.new(0.175, 0, 0.75, 0)  -- 中央に配置
+warpButton.Size = UDim2.new(0.4, 0, 0.1, 0)
+warpButton.Position = UDim2.new(0.3, 0, 0.75, 0)
 warpButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 warpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 warpButton.Font = Enum.Font.Code
@@ -331,9 +211,9 @@ warpButton.MouseButton1Click:Connect(function()
     safeWarp(val)
 end)
 
--- 透明化ボタン（サイズ統一）
+-- 透明化ボタン
 local transparencyButton = Instance.new("TextButton")
-transparencyButton.Size = UDim2.new(0.65, 0, 0.12, 0)  -- サイズ統一
+transparencyButton.Size = UDim2.new(0.65, 0, 0.15, 0)
 transparencyButton.Position = UDim2.new(0.025, 0, 0.85, 0)
 transparencyButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 transparencyButton.TextColor3 = Color3.fromRGB(0, 255, 0)
@@ -380,3 +260,4 @@ end)
 
 -- 起動メッセージ
 addLog("起動完了: ！daxhab！ / 作成者: dax")
+
