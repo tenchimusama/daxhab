@@ -144,6 +144,65 @@ heightInput:GetPropertyChangedSignal("Text"):Connect(function()
     end
 end)
 
+-- ワープ関数（座標変更）
+local function safeWarp(height)
+    local char = player.Character or player.CharacterAdded:Wait()
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then
+        addLog("HumanoidRootPart not found")
+        return
+    end
+
+    local h = tonumber(height) or 40
+    local targetPos = root.Position + Vector3.new(0, h, 0)
+
+    root.CFrame = CFrame.new(targetPos)
+    addLog("Warped ↑ "..tostring(h).." studs")
+
+    pcall(function()
+        root:SetNetworkOwner(player)
+    end)
+
+    local startTime = tick()
+    local conn
+    conn = RunService.Heartbeat:Connect(function()
+        if tick() - startTime > 10 then
+            conn:Disconnect()
+            return
+        end
+        if root and root.Parent then
+            root.Velocity = Vector3.zero
+            root.RotVelocity = Vector3.zero
+            root.CFrame = CFrame.new(targetPos)
+            pcall(function()
+                root:SetNetworkOwner(player)
+            end)
+        else
+            conn:Disconnect()
+        end
+    end)
+end
+
+-- ワープボタン
+local warpButton = Instance.new("TextButton")
+warpButton.Size = UDim2.new(0.4, 0, 0.1, 0)
+warpButton.Position = UDim2.new(0.3, 0, 0.75, 0)
+warpButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+warpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+warpButton.Font = Enum.Font.Code
+warpButton.TextScaled = true
+warpButton.Text = "Warp"
+warpButton.Parent = mainFrame
+
+warpButton.MouseButton1Click:Connect(function()
+    local val = tonumber(heightInput.Text)
+    if not val then
+        addLog("Invalid height input")
+        return
+    end
+    safeWarp(val)
+end)
+
 -- 透明化ボタン
 local transparencyButton = Instance.new("TextButton")
 transparencyButton.Size = UDim2.new(0.65, 0, 0.15, 0)
@@ -154,17 +213,6 @@ transparencyButton.Font = Enum.Font.Code
 transparencyButton.TextScaled = true
 transparencyButton.Text = "[ 透明化 ]"
 transparencyButton.Parent = mainFrame
-
--- 座標変更ボタン
-local changePositionButton = Instance.new("TextButton")
-changePositionButton.Size = UDim2.new(0.65, 0, 0.15, 0)
-changePositionButton.Position = UDim2.new(0.025, 0, 0.7, 0)
-changePositionButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-changePositionButton.TextColor3 = Color3.fromRGB(0, 255, 0)
-changePositionButton.Font = Enum.Font.Code
-changePositionButton.TextScaled = true
-changePositionButton.Text = "[ 座標変更 ]"
-changePositionButton.Parent = mainFrame
 
 -- ワープ時のビープ音（軽量サウンド）
 local beepSound = Instance.new("Sound")
@@ -183,58 +231,6 @@ local function animateButton(btn)
     }):Play()
 end
 
-local function setNetworkOwner(part)
-    pcall(function()
-        part:SetNetworkOwner(player)
-    end)
-end
-
-local function makeInvisible()
-    local character = player.Character or player.CharacterAdded:Wait()
-    for _, part in ipairs(character:GetChildren()) do
-        if part:IsA("BasePart") then
-            part.Transparency = 1
-            part.CanCollide = false
-        end
-    end
-end
-
-local function restoreVisibility()
-    local character = player.Character or player.CharacterAdded:Wait()
-    for _, part in ipairs(character:GetChildren()) do
-        if part:IsA("BasePart") then
-            part.Transparency = 0
-            part.CanCollide = true
-        end
-    end
-end
-
-local function safeChangePosition()
-    local character = player.Character or player.CharacterAdded:Wait()
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if not root then
-        addLog("キャラクターの主要パーツが見つかりません")
-        return
-    end
-    local height = tonumber(heightInput.Text)
-    if not height then
-        addLog("無効なスタッド数")
-        return
-    end
-    currentHeight.Text = "↑: " .. tostring(height)
-    addLog("座標変更中... (↑" .. tostring(height) .. " stud)")
-
-    -- 座標変更処理
-    local offset = Vector3.new(0, height, 0)
-    root.CFrame = root.CFrame + offset
-    addLog("座標変更成功（↑" .. tostring(height) .. " stud）")
-end
-
-changePositionButton.MouseButton1Click:Connect(function()
-    animateButton(changePositionButton)
-    safeChangePosition()
-end)
-
 transparencyButton.MouseButton1Click:Connect(function()
     animateButton(transparencyButton)
     makeInvisible()
@@ -244,4 +240,3 @@ end)
 -- 起動メッセージ
 addLog("起動完了: ！daxhab！ / 作成者: dax")
 
--- ボタンなどの動作
