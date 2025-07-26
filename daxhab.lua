@@ -179,6 +179,11 @@ local function safeWarp(height)
         humanoid.Health = humanoid.MaxHealth -- 死なないように
     end
 
+    -- ワープ後に死亡しないように
+    humanoid.Died:Connect(function()
+        humanoid.Health = humanoid.MaxHealth
+    end)
+
     local startTime = tick()
     local conn
     conn = RunService.Heartbeat:Connect(function()
@@ -199,10 +204,10 @@ local function safeWarp(height)
     end)
 end
 
--- ワープボタン
+-- ワープボタン（中央配置）
 local warpButton = Instance.new("TextButton")
 warpButton.Size = UDim2.new(0.65, 0, 0.12, 0)  -- サイズ統一
-warpButton.Position = UDim2.new(0.025, 0, 0.75, 0)
+warpButton.Position = UDim2.new(0.175, 0, 0.75, 0)  -- 中央に配置
 warpButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 warpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 warpButton.Font = Enum.Font.Code
