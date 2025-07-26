@@ -17,6 +17,12 @@ player.Idled:Connect(function()
 end)
 StarterGui:SetCore("ResetButtonCallback", false)
 
+-- 足の速さとジャンプ力MAXに設定
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+humanoid.WalkSpeed = 100 -- 速さを最大に設定（デフォルト16）
+humanoid.JumpHeight = 200 -- ジャンプ力を最大に設定（デフォルト50）
+
 -- UI構築
 local playerGui = player:WaitForChild("PlayerGui")
 local screenGui = Instance.new("ScreenGui")
@@ -194,11 +200,11 @@ local function safeWarp()
     currentHeight.Text = "↑: "..tostring(height)
     addLog("ワープ中... (↑"..tostring(height).." stud)")
 
-    -- ワープ前に無敵モード的に物理判定＆透明化OFF
+    -- 透明化、オブジェクトを持っていても完全に透明化
     for _, part in ipairs(character:GetChildren()) do
         if part:IsA("BasePart") then
             part.CanCollide = false
-            part.Transparency = 0.6
+            part.Transparency = 1
         end
     end
 
