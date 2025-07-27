@@ -4,7 +4,6 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
-local SoundService = game:GetService("SoundService")
 
 local player = Players.LocalPlayer
 
@@ -27,14 +26,14 @@ screenGui.Parent = playerGui
 
 -- メインフレーム
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0.35, 0, 0.45, 0)
-mainFrame.Position = UDim2.new(0.33, 0, 0.5, 0)
+mainFrame.Size = UDim2.new(0.8, 0, 0.6, 0) -- スマホ画面に合わせて大きめ
+mainFrame.Position = UDim2.new(0.1, 0, 0.2, 0) -- 少し上寄せに調整
 mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Parent = screenGui
 
--- ドラッグ
+-- ドラッグ対応（タッチ＆マウス対応済み）
 local dragging, dragInput, dragStart, startPos
 mainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -69,8 +68,8 @@ logoHolder.Parent = mainFrame
 local logoLabels = {}
 for i = 1, #logoText do
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(0, 15, 1, 0)
-    lbl.Position = UDim2.new(0, 15 * (i - 1), 0, 0)
+    lbl.Size = UDim2.new(0, 20, 1, 0) -- 文字幅少し拡大
+    lbl.Position = UDim2.new(0, 20 * (i - 1), 0, 0)
     lbl.BackgroundTransparency = 1
     lbl.Font = Enum.Font.Code
     lbl.TextScaled = true
@@ -84,7 +83,7 @@ end
 RunService.RenderStepped:Connect(function()
     for i, lbl in ipairs(logoLabels) do
         local offset = math.sin(tick() * 8 + i) * 5
-        lbl.Position = UDim2.new(0, 15 * (i - 1), 0, offset)
+        lbl.Position = UDim2.new(0, 20 * (i - 1), 0, offset)
         lbl.TextColor3 = Color3.fromHSV((tick() * 0.25 + i * 0.07) % 1, 1, 1)
     end
 end)
@@ -94,7 +93,7 @@ local logFrame = Instance.new("ScrollingFrame")
 logFrame.Size = UDim2.new(1, -10, 0.5, -10)
 logFrame.Position = UDim2.new(0, 5, 0.2, 5)
 logFrame.BackgroundColor3 = Color3.new(0, 0, 0)
-logFrame.ScrollBarThickness = 6
+logFrame.ScrollBarThickness = 8 -- 少し太めにして操作しやすく
 logFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 logFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 logFrame.Parent = mainFrame
@@ -104,7 +103,7 @@ UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 local function addLog(text)
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, 0, 0, 18)
+    lbl.Size = UDim2.new(1, 0, 0, 22) -- 行間広めで読みやすく
     lbl.BackgroundTransparency = 1
     lbl.TextColor3 = Color3.fromRGB(0, 255, 0)
     lbl.Font = Enum.Font.Code
