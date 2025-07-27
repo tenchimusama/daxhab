@@ -2,9 +2,14 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
-local UserInputService = game:GetService("UserInputService")
-
 local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- 既存UIを消す（重複防止）
+local existing = playerGui:FindFirstChild("DaxhabUI")
+if existing then
+    existing:Destroy()
+end
 
 -- アンチキック＆Idled無効化
 player.Idled:Connect(function()
@@ -15,63 +20,30 @@ player.Idled:Connect(function()
 end)
 StarterGui:SetCore("ResetButtonCallback", false)
 
--- UI作成
-local playerGui = player:WaitForChild("PlayerGui")
+-- ScreenGui作成
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DaxhabUI"
 screenGui.IgnoreGuiInset = true
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- メインフレーム（画面サイズに応じて自動調整）
-local function clamp(value, min, max)
-    return math.max(min, math.min(max, value))
-end
-local screenSize = workspace.CurrentCamera.ViewportSize
-local frameWidth = clamp(screenSize.X * 0.8, 300, 700)
-local frameHeight = clamp(screenSize.Y * 0.6, 200, 500)
+-- メインFrame（スマホ対応固定サイズ）
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 350, 0, 400)
+frame.Position = UDim2.new(0.5, -175, 0.5, -200)
+frame.BackgroundColor3 = Color3.new(0, 0, 0)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+frame.Active = true
+frame.Draggable = true -- 公式ドラッグ対応でスマホOK
 
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, frameWidth, 0, frameHeight)
-mainFrame.Position = UDim2.new(0.5, -frameWidth/2, 0.5, -frameHeight/2)
-mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Parent = screenGui
-
--- ドラッグ処理（タッチ＆マウス対応）
-local dragging, dragInput, dragStart, startPos
-mainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = mainFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
-    end
-end)
-mainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
-RunService.RenderStepped:Connect(function()
-    if dragging and dragInput then
-        local delta = dragInput.Position - dragStart
-        local newX = clamp(startPos.X.Offset + delta.X, 0, screenSize.X - frameWidth)
-        local newY = clamp(startPos.Y.Offset + delta.Y, 0, screenSize.Y - frameHeight)
-        mainFrame.Position = UDim2.new(0, newX, 0, newY)
-    end
-end)
-
--- ロゴ（虹色＆上下揺れ）
+-- ロゴラベル群
 local logoText = "！daxhab！"
 local logoHolder = Instance.new("Frame")
-logoHolder.Size = UDim2.new(1, 0, 0.15, 0)
+logoHolder.Size = UDim2.new(1, 0, 0, 40)
 logoHolder.Position = UDim2.new(0, 0, 0, 0)
 logoHolder.BackgroundTransparency = 1
-logoHolder.Parent = mainFrame
+logoHolder.Parent = frame
 
 local logoLabels = {}
 for i = 1, #logoText do
@@ -83,139 +55,129 @@ for i = 1, #logoText do
     lbl.TextScaled = true
     lbl.Text = logoText:sub(i, i)
     lbl.TextStrokeTransparency = 0
-    lbl.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
+    lbl.TextStrokeColor3 = Color3.new(0, 1, 0)
     lbl.TextColor3 = Color3.fromHSV((tick() * 0.15 + i * 0.05) % 1, 1, 1)
     lbl.Parent = logoHolder
     table.insert(logoLabels, lbl)
 end
+
+-- ロゴのゆらゆら虹色変化
 RunService.RenderStepped:Connect(function()
     for i, lbl in ipairs(logoLabels) do
-        local offset = math.sin(tick() * 8 + i) * 6
+        local offset = math.sin(tick() * 8 + i) * 5
         lbl.Position = UDim2.new(0, 25 * (i - 1), 0, offset)
-        lbl.TextColor3 = Color3.fromHSV((tick() * 0.3 + i * 0.1) % 1, 1, 1)
+        lbl.TextColor3 = Color3.fromHSV((tick() * 0.25 + i * 0.07) % 1, 1, 1)
         lbl.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
     end
 end)
 
--- ログ（背景に👿の模様を文字列で再現）
+-- ログ用スクロールフレーム
 local logFrame = Instance.new("ScrollingFrame")
-logFrame.Size = UDim2.new(1, -20, 0.6, -40)
-logFrame.Position = UDim2.new(0, 10, 0.15, 50)
-logFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+logFrame.Size = UDim2.new(1, -20, 1, -100)
+logFrame.Position = UDim2.new(0, 10, 0, 50)
+logFrame.BackgroundColor3 = Color3.new(0, 0, 0)
 logFrame.ScrollBarThickness = 10
-logFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-logFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-logFrame.Parent = mainFrame
+logFrame.Parent = frame
 
-local UIListLayout = Instance.new("UIListLayout", logFrame)
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+local uiListLayout = Instance.new("UIListLayout", logFrame)
+uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- 👿パターン文字列作成（横幅に合わせて変動）
-local function makeDevilPattern(width)
-    local pattern = ""
-    local devilChar = "👿"
-    local lineLength = math.floor(width / 18) -- 文字幅18px想定
-
-    for y = 1, 15 do
-        local line = ""
-        for x = 1, lineLength do
-            -- 変な数式で模様を決定
-            local val = (math.sin(x * 1.5 + y * 2.3) + math.cos(y * 1.8 - x * 1.1)) * 10
-            if math.floor(val) % 2 == 0 then
-                line = line .. devilChar
-            else
-                line = line .. " "
-            end
-        end
-        pattern = pattern .. line .. "\n"
-    end
-    return pattern
+-- 👿絵文字風の背景色数式でログを生成（パターン化）
+local function createDevilBG(index)
+    local x = index * 0.3
+    local y = index * 0.7
+    local r = 0.5 + 0.5 * math.sin(x * 10)
+    local g = 0.1 + 0.9 * math.cos(y * 15)
+    local b = 0.1 + 0.9 * math.sin(x * y * 20)
+    return Color3.new(r, g, b)
 end
 
--- 背景テキスト（👿模様）
-local bgPatternLabel = Instance.new("TextLabel")
-bgPatternLabel.Size = UDim2.new(1, 0, 1, 0)
-bgPatternLabel.Position = UDim2.new(0, 0, 0, 0)
-bgPatternLabel.BackgroundTransparency = 1
-bgPatternLabel.TextColor3 = Color3.fromRGB(0, 150, 0)
-bgPatternLabel.TextStrokeTransparency = 0.8
-bgPatternLabel.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
-bgPatternLabel.Font = Enum.Font.Code
-bgPatternLabel.TextScaled = false
-bgPatternLabel.TextXAlignment = Enum.TextXAlignment.Left
-bgPatternLabel.TextYAlignment = Enum.TextYAlignment.Top
-bgPatternLabel.Text = makeDevilPattern(logFrame.AbsoluteSize.X)
-bgPatternLabel.ZIndex = 1
-bgPatternLabel.Parent = logFrame
-
--- ログ用ラベル群（前面に配置）
+-- ログ追加関数
+local logCount = 0
 local function addLog(text)
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, 0, 0, 20)
-    lbl.BackgroundTransparency = 1
-    lbl.TextColor3 = Color3.fromRGB(0, 255, 0)
-    lbl.Font = Enum.Font.Code
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Text = "> " .. text
-    lbl.ZIndex = 2
-    lbl.Parent = logFrame
+    logCount = logCount + 1
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 25)
+    label.BackgroundColor3 = createDevilBG(logCount)
+    label.TextColor3 = Color3.fromRGB(0, 255, 0)
+    label.Font = Enum.Font.Code
+    label.TextScaled = true
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Text = "👿 " .. text
+    label.Parent = logFrame
     task.wait()
     logFrame.CanvasPosition = Vector2.new(0, logFrame.AbsoluteCanvasSize.Y)
 end
 
--- 高さ入力欄
+-- スタッド入力欄
 local heightInput = Instance.new("TextBox")
-heightInput.Size = UDim2.new(0.3, 0, 0.12, 0)
-heightInput.Position = UDim2.new(0.65, 0, 0.78, 0)
+heightInput.Size = UDim2.new(0.5, 0, 0, 40)
+heightInput.Position = UDim2.new(0, 10, 1, -45)
 heightInput.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 heightInput.TextColor3 = Color3.fromRGB(0, 255, 0)
 heightInput.PlaceholderText = "↑スタッド"
 heightInput.Text = "40"
-heightInput.TextScaled = true
 heightInput.Font = Enum.Font.Code
+heightInput.TextScaled = true
 heightInput.ClearTextOnFocus = false
-heightInput.Parent = mainFrame
+heightInput.Parent = frame
 
-local currentHeight = Instance.new("TextLabel")
-currentHeight.Size = UDim2.new(0.3, 0, 0.12, 0)
-currentHeight.Position = UDim2.new(0.65, 0, 0.9, 0)
-currentHeight.BackgroundTransparency = 1
-currentHeight.TextColor3 = Color3.fromRGB(0, 255, 0)
-currentHeight.Font = Enum.Font.Code
-currentHeight.TextScaled = true
-currentHeight.Text = "↑: 40"
-currentHeight.Parent = mainFrame
-
-heightInput:GetPropertyChangedSignal("Text"):Connect(function()
-    local val = tonumber(heightInput.Text)
-    if val then
-        currentHeight.Text = "↑: " .. tostring(val)
-    else
-        currentHeight.Text = "↑: ?"
-    end
-end)
+-- 保護フラグ
+local protectionEnabled = true
 
 -- 保護トグルボタン
-local protectionEnabled = true
 local protectButton = Instance.new("TextButton")
-protectButton.Size = UDim2.new(0.6, 0, 0.12, 0)
-protectButton.Position = UDim2.new(0.05, 0, 0.9, 0)
+protectButton.Size = UDim2.new(0.65, 0, 0, 40)
+protectButton.Position = UDim2.new(0, 10, 1, -90)
 protectButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 protectButton.TextColor3 = Color3.fromRGB(0, 255, 0)
 protectButton.Font = Enum.Font.Code
 protectButton.TextScaled = true
 protectButton.Text = "🟢 保護ON"
-protectButton.Parent = mainFrame
+protectButton.Parent = frame
 
 protectButton.MouseButton1Click:Connect(function()
     protectionEnabled = not protectionEnabled
     if protectionEnabled then
         protectButton.Text = "🟢 保護ON"
-        addLog("保護を有効化")
+        addLog("保護を有効化しました")
     else
         protectButton.Text = "🔴 保護OFF"
-        addLog("保護を無効化")
+        addLog("保護を無効化しました")
     end
+end)
+
+-- Warpボタン
+local warpButton = Instance.new("TextButton")
+warpButton.Size = UDim2.new(0.3, 0, 0, 40)
+warpButton.Position = UDim2.new(0.68, 0, 1, -90)
+warpButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+warpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+warpButton.Font = Enum.Font.Code
+warpButton.TextScaled = true
+warpButton.Text = "Warp"
+warpButton.Parent = frame
+
+-- UI最小化ボタン
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Size = UDim2.new(0.1, 0, 0, 40)
+minimizeButton.Position = UDim2.new(0.9, 0, 0, 0)
+minimizeButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeButton.Font = Enum.Font.Code
+minimizeButton.TextScaled = true
+minimizeButton.Text = "ー"
+minimizeButton.Parent = frame
+
+local minimized = false
+minimizeButton.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    for _, child in ipairs(frame:GetChildren()) do
+        if child ~= logoHolder and child ~= minimizeButton then
+            child.Visible = not minimized
+        end
+    end
+    addLog(minimized and "UIを最小化しました" or "UIを展開しました")
 end)
 
 -- キャラ保護ループ
@@ -228,7 +190,7 @@ local function protectCharacter()
 
     humanoid.StateChanged:Connect(function(_, new)
         if protectionEnabled and new == Enum.HumanoidStateType.Dead then
-            addLog("死亡検出 - 即回復")
+            addLog("死亡検出 → 即回復！")
             humanoid.Health = humanoid.MaxHealth
             humanoid.PlatformStand = false
             humanoid:ChangeState(Enum.HumanoidStateType.Running)
@@ -251,11 +213,10 @@ local function protectCharacter()
         end
     end)
 end
-
 player.CharacterAdded:Connect(protectCharacter)
 protectCharacter()
 
--- ワープ関数（安全ワープ + 10秒間の座標保護）
+-- Warp機能（10秒間位置固定保護付き）
 local function safeWarp(height)
     local char = player.Character or player.CharacterAdded:Wait()
     local root = char:FindFirstChild("HumanoidRootPart")
@@ -268,14 +229,14 @@ local function safeWarp(height)
     local h = tonumber(height) or 40
     local targetPos = root.Position + Vector3.new(0, h, 0)
 
-    addLog("Warp開始 ↑ "..h.." スタッド")
+    addLog("Warp開始 ↑ " .. h .. " スタッド")
     protectionEnabled = true
     protectButton.Text = "🟢 保護ON"
 
     if humanoid then
         humanoid.PlatformStand = false
-        humanoid.Health = humanoid.MaxHealth
         humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+        humanoid.Health = humanoid.MaxHealth
     end
 
     root.CFrame = CFrame.new(targetPos)
@@ -298,24 +259,15 @@ local function safeWarp(height)
     end)
 end
 
--- ワープボタン
-local warpButton = Instance.new("TextButton")
-warpButton.Size = UDim2.new(0.3, 0, 0.12, 0)
-warpButton.Position = UDim2.new(0.65, 0, 0.9, 0)
-warpButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-warpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-warpButton.Font = Enum.Font.Code
-warpButton.TextScaled = true
-warpButton.Text = "Warp"
-warpButton.Parent = mainFrame
-
 warpButton.MouseButton1Click:Connect(function()
     local val = tonumber(heightInput.Text)
     if not val then
-        addLog("高さが無効です")
+        addLog("無効な高さです")
         return
     end
     safeWarp(val)
 end)
 
-addLog("起動完了: ！daxhab！ / 作成者: dax")
+-- 起動ログ
+addLog("起動完了！ ！daxhab！ / 作者:dax")
+
