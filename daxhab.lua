@@ -8,7 +8,7 @@ local SoundService = game:GetService("SoundService")
 
 local player = Players.LocalPlayer
 
--- アンチキック＆Idled無効化
+-- ✅ アンチキック＆Idled無効化
 player.Idled:Connect(function()
     local VirtualUser = game:GetService("VirtualUser")
     VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
@@ -17,7 +17,7 @@ player.Idled:Connect(function()
 end)
 StarterGui:SetCore("ResetButtonCallback", false)
 
--- UI構築
+-- ✅ UI構築
 local playerGui = player:WaitForChild("PlayerGui")
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DaxhabUI"
@@ -25,7 +25,7 @@ screenGui.IgnoreGuiInset = true
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- メインフレーム（ドラッグ対応）
+-- ✅ メインフレーム（ドラッグ対応）
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0.35, 0, 0.45, 0)
 mainFrame.Position = UDim2.new(0.33, 0, 0.5, 0)
@@ -58,7 +58,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 3Dロゴ作成
+-- ✅ 3Dロゴ
 local logoText = "！daxhab！"
 local logoHolder = Instance.new("Frame")
 logoHolder.Size = UDim2.new(1, 0, 0.2, 0)
@@ -67,7 +67,6 @@ logoHolder.BackgroundTransparency = 1
 logoHolder.Parent = mainFrame
 
 local logoLabels = {}
-
 for i = 1, #logoText do
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(0, 15, 1, 0)
@@ -78,22 +77,20 @@ for i = 1, #logoText do
     lbl.Text = logoText:sub(i, i)
     lbl.TextStrokeTransparency = 0
     lbl.TextStrokeColor3 = Color3.new(0, 1, 0)
-    lbl.TextColor3 = Color3.fromHSV((tick() * 0.2 + i * 0.05) % 1, 1, 1)
+    lbl.TextColor3 = Color3.fromHSV((tick() * 0.15 + i * 0.05) % 1, 1, 1)
     lbl.Parent = logoHolder
     table.insert(logoLabels, lbl)
 end
-
--- 3D風アニメーション
 RunService.RenderStepped:Connect(function()
     for i, lbl in ipairs(logoLabels) do
-        local offset = math.sin(tick() * 10 + i) * 5
+        local offset = math.sin(tick() * 8 + i) * 5
         lbl.Position = UDim2.new(0, 15 * (i - 1), 0, offset)
-        lbl.TextColor3 = Color3.fromHSV((tick() * 0.3 + i * 0.07) % 1, 1, 1)
+        lbl.TextColor3 = Color3.fromHSV((tick() * 0.25 + i * 0.07) % 1, 1, 1)
         lbl.TextStrokeColor3 = Color3.fromRGB(0, 255, 0)
     end
 end)
 
--- ✅ スクロール可能ログ
+-- ✅ ログ
 local logFrame = Instance.new("ScrollingFrame")
 logFrame.Size = UDim2.new(1, -10, 0.5, -10)
 logFrame.Position = UDim2.new(0, 5, 0.2, 5)
@@ -119,7 +116,7 @@ local function addLog(text)
     logFrame.CanvasPosition = Vector2.new(0, logFrame.AbsoluteCanvasSize.Y)
 end
 
--- スタッド入力欄
+-- ✅ スタッド入力欄
 local heightInput = Instance.new("TextBox")
 heightInput.Size = UDim2.new(0.3, 0, 0.12, 0)
 heightInput.Position = UDim2.new(0.68, 0, 0.63, 0)
@@ -151,10 +148,71 @@ heightInput:GetPropertyChangedSignal("Text"):Connect(function()
     end
 end)
 
--- ワープ関数（座標変更）
+-- ✅ 保護トグル
+local protectionEnabled = true
+local protectButton = Instance.new("TextButton")
+protectButton.Size = UDim2.new(0.65, 0, 0.15, 0)
+protectButton.Position = UDim2.new(0.025, 0, 0.85, 0)
+protectButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+protectButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+protectButton.Font = Enum.Font.Code
+protectButton.TextScaled = true
+protectButton.Text = "🟢 保護ON"
+protectButton.Parent = mainFrame
+
+protectButton.MouseButton1Click:Connect(function()
+    protectionEnabled = not protectionEnabled
+    if protectionEnabled then
+        protectButton.Text = "🟢 保護ON"
+        addLog("保護を有効化")
+    else
+        protectButton.Text = "🔴 保護OFF"
+        addLog("保護を無効化")
+    end
+end)
+
+-- ✅ キャラ保護ループ
+local function protectCharacter()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local humanoid = char:WaitForChild("Humanoid")
+    local root = char:WaitForChild("HumanoidRootPart")
+
+    humanoid.BreakJointsOnDeath = false
+
+    humanoid.StateChanged:Connect(function(_, new)
+        if protectionEnabled and new == Enum.HumanoidStateType.Dead then
+            addLog("死亡検出 - 即回復")
+            humanoid.Health = humanoid.MaxHealth
+            humanoid.PlatformStand = false
+            humanoid:ChangeState(Enum.HumanoidStateType.Running)
+        end
+    end)
+
+    RunService.Heartbeat:Connect(function()
+        if protectionEnabled then
+            if humanoid.Health < humanoid.MaxHealth then
+                humanoid.Health = humanoid.MaxHealth
+                humanoid.PlatformStand = false
+            end
+            if root and root.Parent then
+                root.Velocity = Vector3.zero
+                root.RotVelocity = Vector3.zero
+                pcall(function()
+                    root:SetNetworkOwner(player)
+                end)
+            end
+        end
+    end)
+end
+
+player.CharacterAdded:Connect(protectCharacter)
+protectCharacter()
+
+-- ✅ Warp機能
 local function safeWarp(height)
     local char = player.Character or player.CharacterAdded:Wait()
     local root = char:FindFirstChild("HumanoidRootPart")
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not root then
         addLog("HumanoidRootPart not found")
         return
@@ -163,39 +221,36 @@ local function safeWarp(height)
     local h = tonumber(height) or 40
     local targetPos = root.Position + Vector3.new(0, h, 0)
 
-    root.CFrame = CFrame.new(targetPos)
-    addLog("Warped ↑ "..tostring(h).." studs")
+    addLog("Warp開始 ↑ "..h.." studs")
+    protectionEnabled = true
+    protectButton.Text = "🟢 保護ON"
 
-    pcall(function()
-        root:SetNetworkOwner(player)
-    end)
-
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
     if humanoid then
+        humanoid.PlatformStand = false
+        humanoid:ChangeState(Enum.HumanoidStateType.Physics)
         humanoid.Health = humanoid.MaxHealth
     end
+
+    root.CFrame = CFrame.new(targetPos)
+    root.Velocity = Vector3.zero
+    root.RotVelocity = Vector3.zero
 
     local startTime = tick()
     local conn
     conn = RunService.Heartbeat:Connect(function()
         if tick() - startTime > 10 then
             conn:Disconnect()
+            addLog("Warp保護終了")
             return
         end
         if root and root.Parent then
+            root.CFrame = CFrame.new(targetPos)
             root.Velocity = Vector3.zero
             root.RotVelocity = Vector3.zero
-            root.CFrame = CFrame.new(targetPos)
-            pcall(function()
-                root:SetNetworkOwner(player)
-            end)
-        else
-            conn:Disconnect()
         end
     end)
 end
 
--- ワープボタン（中央配置）
 local warpButton = Instance.new("TextButton")
 warpButton.Size = UDim2.new(0.4, 0, 0.1, 0)
 warpButton.Position = UDim2.new(0.3, 0, 0.75, 0)
@@ -214,82 +269,5 @@ warpButton.MouseButton1Click:Connect(function()
     end
     safeWarp(val)
 end)
-
--- 透明化ボタン
-local transparencyButton = Instance.new("TextButton")
-transparencyButton.Size = UDim2.new(0.65, 0, 0.15, 0)
-transparencyButton.Position = UDim2.new(0.025, 0, 0.85, 0)
-transparencyButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-transparencyButton.TextColor3 = Color3.fromRGB(0, 255, 0)
-transparencyButton.Font = Enum.Font.Code
-transparencyButton.TextScaled = true
-transparencyButton.Text = "[ 透明化 ]"
-transparencyButton.Parent = mainFrame
-
-local function makeInvisible()
-    local char = player.Character or player.CharacterAdded:Wait()
-    if char then
-        for _, obj in pairs(char:GetChildren()) do
-            if obj:IsA("BasePart") then
-                obj.Transparency = 1
-                obj.CanCollide = false
-            end
-        end
-    end
-end
-
--- 透明化ボタンのアニメーション
-local beepSound = Instance.new("Sound")
-beepSound.SoundId = "rbxassetid://911882704"
-beepSound.Volume = 0.6
-beepSound.Parent = mainFrame
-
-local function animateButton(btn)
-    TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
-        BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-    }):Play()
-    beepSound:Play()
-    task.wait(0.2)
-    TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {
-        BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    }):Play()
-end
-
-transparencyButton.MouseButton1Click:Connect(function()
-    animateButton(transparencyButton)
-    makeInvisible()
-    addLog("透明化中...")
-end)
-
--- リセット完全防御モジュール
-local function protectCharacter()
-    local char = player.Character or player.CharacterAdded:Wait()
-    local humanoid = char:WaitForChild("Humanoid")
-
-    humanoid.BreakJointsOnDeath = false
-
-    humanoid.StateChanged:Connect(function(_, new)
-        if new == Enum.HumanoidStateType.Dead then
-            humanoid.Health = humanoid.MaxHealth
-            humanoid:ChangeState(Enum.HumanoidStateType.Running)
-        end
-    end)
-
-    RunService.Heartbeat:Connect(function()
-        if humanoid.Health < humanoid.MaxHealth then
-            humanoid.Health = humanoid.MaxHealth
-        end
-    end)
-
-    local root = char:WaitForChild("HumanoidRootPart")
-    RunService.Heartbeat:Connect(function()
-        pcall(function()
-            root:SetNetworkOwner(player)
-        end)
-    end)
-end
-
-player.CharacterAdded:Connect(protectCharacter)
-protectCharacter()
 
 addLog("起動完了: ！daxhab！ / 作成者: dax")
